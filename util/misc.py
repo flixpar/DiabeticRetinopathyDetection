@@ -3,20 +3,11 @@ from torch import nn
 import torch.optim.lr_scheduler
 from torch.utils.data import WeightedRandomSampler
 
-from models.resnet import Resnet
-from models.pretrained import Pretrained
-from models.loss import MultiLabelFocalLoss, FBetaLoss
+from models.classifier import Classifier
+from models.loss import FocalLoss, FBetaLoss
 
 def get_model(args):
-	n_channels = len(set(args.img_channels))
-	if args.arch in ["resnet152", "resnet50"]:
-		layers = int(args.arch[6:])
-		model = Resnet(layers=layers, n_input_channels=n_channels)
-	elif args.arch in ["inceptionv4", "setnet154"]:
-		model = Pretrained(args.arch, n_input_channels=n_channels)
-	else:
-		raise ValueError("Invalid model architecture: {}".format(args.arch))
-	return model
+	return Classifier(args.arch)
 
 def get_loss(args, weights):
 
@@ -30,12 +21,14 @@ def get_loss(args, weights):
 	else:
 		class_weights = None
 
-	if args.loss == "softmargin":
-		loss_func = nn.MultiLabelSoftMarginLoss(weight=class_weights)
+	if args.loss == "bce":
+		loss_func = nn.BCEWithLogitsLoss(weight=class_weights, pos_weight=None)
 	elif args.loss == "focal":
-		loss_func = MultiLabelFocalLoss(weight=class_weights, gamma=args.focal_gamma)
+		loss_func = FocalLoss(weight=class_weights, gamma=args.focal_gamma)
 	elif args.loss == "fbeta":
 		loss_func = FBetaLoss(weight=class_weights, beta=args.fbeta, soft=True)
+	elif args.loss == "softmargin":
+		loss_func = nn.SoftMarginLoss(weight=class_weights)
 	else:
 		raise ValueError("Invalid loss function specifier: {}".format(args.loss))
 
