@@ -11,21 +11,18 @@ class Args:
 	batch_size = 16                 # DEFAULT 16 (int)
 	weight_decay = 1e-4             # DEFAULT 0 (float)
 
-	arch = "inceptionv4"            # DEFAULT resnet152 (resnet50 | resnet152 | senet154 | inceptionv4)
+	arch = "resnet50"               # DEFAULT resnet50 (resnet50 | resnet152 | senet154 | inceptionv4)
 
 	initial_lr = 1e-5               # DEFAULT 1e-5 (float)
 	lr_schedule = None              # DEFAULT None (None | poly | exp | step | multistep | cosine)
 	lr_schedule_params = {          # DEFAULT {} (dict)
 	}
 
-	img_size = None                 # DEFAULT None (None | int 224-1024)
-	full_size = False               # DEFAULT False (bool)
-	use_external = False            # DEFAULT False (bool)
-	img_channels = "rgby"           # DEFAULT g (str {r, g, b, y})
-
-	loss = "softmargin"             # DEFAULT softmargin (softmargin | focal | fbeta)
-	focal_gamma = 2                 # DEFAULT 2 (float)
-	fbeta = 1                       # DEFAULT 1 (float)
+	loss = "bce"                    # DEFAULT softmargin (bce | focal | fbeta | softmargin)
+	loss_params = {
+		"focal_gamma": 2,           # DEFAULT 2 (float)
+		"fbeta": 1                  # DEFAULT 1 (float)
+	}                    
 
 	weight_mode = "inverse"         # DEFAULT inverse ({inverse, sqrt} | None)
 	weight_method = "loss"          # DEFAULT loss (loss | sampling | None)
@@ -40,6 +37,8 @@ class Args:
 
 	train_split = "train"           # DEFAULT train (train | val | trainval)
 	val_split   = "val"             # DEFAULT val (train | val | trainval)
+
+	img_size = None                 # DEFAULT None (None | int 224-1024)
 
 	train_augmentation = tfms.Compose([
 		tfms.HorizontalFlip(p=0.5),
@@ -62,5 +61,4 @@ class Args:
 	########## Paths #############
 	##############################
 
-	primary_datapath  = ""
-	fullsize_datapath = ""
+	datapath  = ""
