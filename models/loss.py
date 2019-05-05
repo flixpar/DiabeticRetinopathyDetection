@@ -11,39 +11,12 @@ class FocalLoss(nn.Module):
 		self.reduction = reduction
 		self.gamma = gamma
 
-	def forward(self, input, target):
+	def forward(self, p, target):
 		
-		p = torch.sigmoid(input)
 		loss = - (target * ((1 - p) ** self.gamma) * F.logsigmoid(input)) - ((1 - target) * (p ** self.gamma) * F.logsigmoid(-input))
 
 		if self.weight is not None:
 			loss = torch.mul(loss, self.weight)
-
-		if self.reduction == "mean":
-			loss = loss.mean(dim=0)
-		elif self.reduction == "sum":
-			loss = loss.sum(dim=0)
-
-		return loss
-
-class MultiLabelFocalLoss(nn.Module):
-
-	def __init__(self, gamma=2.0, weight=None, reduction="mean"):
-		super(MultiLabelFocalLoss, self).__init__()
-		if weight is not None: self.register_buffer('weight', weight)
-		self.weight = weight
-		self.reduction = reduction
-		self.gamma = gamma
-
-	def forward(self, input, target):
-
-		p = torch.sigmoid(input)
-		loss = - (target * ((1 - p) ** self.gamma) * F.logsigmoid(input)) - ((1 - target) * (p ** self.gamma) * F.logsigmoid(-input))
-
-		if self.weight is not None:
-			loss = torch.mul(loss, self.weight)
-
-		loss = torch.mean(loss, dim=-1)
 
 		if self.reduction == "mean":
 			loss = loss.mean(dim=0)
@@ -66,7 +39,6 @@ class FBetaLoss(nn.Module):
 
 	def forward(self, input, target):
 
-		input = torch.sigmoid(input)
 		target = target.float()
 
 		if not self.soft:

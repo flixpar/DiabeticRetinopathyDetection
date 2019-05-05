@@ -10,12 +10,10 @@ import torch.nn.functional as F
 from loaders.loader import RetinaImageDataset
 from util.logger import Logger
 from util.misc import get_model, get_loss, get_train_sampler, get_scheduler
-from models.postprocess import postprocess, compute_threshold
 
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from args import Args
 args = Args()
@@ -107,7 +105,7 @@ def train(model, train_loader, loss_func, optimizer, logger):
 			tqdm.tqdm.write("Train loss: {}".format(mean_loss))
 			logger.log("Train loss: {}".format(mean_loss))
 
-def evaluate(model, loader, loss_func, logger, splitname="val", threshold=None):
+def evaluate(model, loader, loss_func, logger, splitname="val", threshold=0.5):
 	model.eval()
 
 	losses = []
@@ -123,14 +121,14 @@ def evaluate(model, loader, loss_func, logger, splitname="val", threshold=None):
 			outputs = model(images)
 			loss = loss_func(outputs.mean(dim=0), labels).item()
 
-			pred = torch.sigmoid(outputs)
-			pred = pred.cpu().numpy()
-
+			pred = outputs.cpu().numpy()
 			labels = labels.cpu().numpy().astype(np.int).squeeze()
 
 			if pred.shape[0] != 1:
 				pred = (0.5 * pred[0, :]) + (0.5 * pred[1:, :].mean(axis=0))
 				pred = pred[np.newaxis, :]
+
+			pred = pred > threshold
 
 			losses.append(loss)
 			preds.append(pred)
@@ -139,23 +137,29 @@ def evaluate(model, loader, loss_func, logger, splitname="val", threshold=None):
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()
 
-	if threshold is None: threshold = compute_threshold(args, preds, targets)
-	preds = postprocess(args, preds=preds, targets=targets, threshold=threshold)
-
 	acc = metrics.accuracy_score(targets, preds)
 	f1 = metrics.f1_score(targets, preds, average="macro")
-	f1_perclass = metrics.f1_score(targets, preds, average=None)
 	loss = np.mean(losses)
+
+	sensitivity = 0
+	specificity = 0
 
 	logger.print()
 	logger.print("Eval - {}".format(splitname))
 	logger.print("Loss:", loss)
 	logger.print("Accuracy:", acc)
-	logger.print("Macro F1:", f1)
-	logger.print("Per-Class F1:", f1_perclass)
+	logger.print("F1:", f1)
+	logger.print("Sensitivity:", sensitivity)
+	logger.print("Specificity:", specificity)
 	logger.print()
 
-	logger.log_eval({f"{splitname}-loss": loss, f"{splitname}-acc": acc, f"{splitname}-f1": f1})
+	logger.log_eval({
+		f"{splitname}-loss": loss,
+		f"{splitname}-acc": acc,
+		f"{splitname}-f1": f1,
+		f"{splitname}-sensitivity": sensitivity,
+		f"{splitname}-specificity": specificity,
+	})
 	return f1, threshold
 
 if __name__ == "__main__":
