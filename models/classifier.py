@@ -28,8 +28,13 @@ class Classifier(nn.Module):
 		nn.init.kaiming_normal_(self.classifier.weight, mode='fan_out', nonlinearity='relu')
 
 	def forward(self, x):
+
 		x = self.net.features(x)
 		x = self.pool(x)
 		x = x.view(x.size(0), -1)
 		x = self.classifier(x)
+
+		if not self.training:
+			x = torch.sigmoid(x)
+		
 		return x
