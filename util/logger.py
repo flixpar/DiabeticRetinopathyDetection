@@ -38,18 +38,6 @@ class Logger:
 			self.main_log_fn = os.path.join(self.path, "log.txt")
 			shutil.copy2("args.py", self.path)
 
-	def write_test_results(self, results, test_ids):
-		out_fn = os.path.join(self.path, "test_results.csv")
-		results_lookup = {r[0]:r[1] for r in results}
-		with open(out_fn, "w") as f:
-			csvwriter = csv.writer(f)
-			csvwriter.writerow(("Id", "Predicted"))
-			for frame_id in test_ids:
-				pred = results_lookup[frame_id] if frame_id in results_lookup else []
-				pred = [str(i) for i in pred]
-				csvwriter.writerow((frame_id, " ".join(pred)))
-		self.print("Results written to: {}\n".format(out_fn))
-
 	def save_model(self, model, epoch):
 		if isinstance(epoch, int):
 			fn = os.path.join(self.path, "save_{:03d}.pth".format(epoch))
@@ -78,14 +66,6 @@ class Logger:
 
 	def run_test(self, epoch):
 		cmd = ["python3", "test.py", self.dt, epoch, "False"]
-		self.print(" ".join(cmd))
-		subprocess.run(cmd, shell=False)
-
-	def submit_kaggle(self):
-		pth = os.path.join(self.path, "test_results.csv")
-		msg = self.dt
-		cmd = ["kaggle", "competitions", "submit", "-c",
-			"human-protein-atlas-image-classification", "-f", pth, "-m", msg]
 		self.print(" ".join(cmd))
 		subprocess.run(cmd, shell=False)
 
@@ -144,27 +124,27 @@ class Logger:
 		plt.close()
 
 		train_eval_data = pd.read_csv(os.path.join(self.path, "train_eval.csv"))
-		if set(["f1", "loss", "acc"]) <= set(train_eval_data.columns.values):
-			evalplot = train_eval_data.plot(x="it", y="loss", legend=False, color="b")
-			secondary_axis = evalplot.twinx()
-			evalplot = train_eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=secondary_axis)
-			evalplot = train_eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=secondary_axis)
-			evalplot.figure.legend()
-			evalplot.grid(False)
-			evalplot.set_title("Evaluation on Train Set")
-			evalplot.figure.savefig(os.path.join(self.path, "train_eval.png"))
-			plt.clf()
-			plt.close()
+		evalplot = train_eval_data.plot(x="it", y="loss", legend=False, color="b")
+		secondary_axis = evalplot.twinx()
+		evalplot = train_eval_data.plot(x="it", y="f1",  legend=False, color="r", ax=secondary_axis)
+		evalplot = train_eval_data.plot(x="it", y="acc", legend=False, color="g", ax=secondary_axis)
+		evalplot = train_eval_data.plot(x="it", y="sensitivity", legend=False, color="m", ax=secondary_axis)
+		evalplot = train_eval_data.plot(x="it", y="specificity", legend=False, color="c", ax=secondary_axis)
+		evalplot.figure.legend()
+		evalplot.grid(False)
+		evalplot.set_title("Evaluation on Train Set")
+		evalplot.figure.savefig(os.path.join(self.path, "train_eval.png"))
+		plt.clf()
+		plt.close()
 
 		eval_data = pd.read_csv(os.path.join(self.path, "eval.csv"))
-
-		if not set(["f1", "loss", "acc"]) <= set(eval_data.columns.values):
-			return
 
 		evalplot = eval_data.plot(x="it", y="loss", legend=False, color="b")
 		secondary_axis = evalplot.twinx()
 		evalplot = eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=secondary_axis)
 		evalplot = eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=secondary_axis)
+		evalplot = eval_data.plot(x="it", y="sensitivity", legend=False, color="m", ax=secondary_axis)
+		evalplot = eval_data.plot(x="it", y="specificity", legend=False, color="c", ax=secondary_axis)
 		evalplot.figure.legend()
 		evalplot.grid(False)
 		evalplot.set_title("Evaluation on Validation Set")
@@ -178,8 +158,30 @@ class Logger:
 			y = "f1",
 			data = eval_data
 		)
-		f1plot.set_title("Eval Macro F1 Score")
+		f1plot.set_title("Eval F1 Score")
 		f1plot.figure.savefig(os.path.join(self.path, "eval_f1.png"))
+
+		plt.clf()
+		plt.close()
+
+		sensplot = sns.lineplot(
+			x = "it",
+			y = "sensitivity",
+			data = eval_data
+		)
+		sensplot.set_title("Eval Sensitivity Score")
+		sensplot.figure.savefig(os.path.join(self.path, "eval_sensitivity.png"))
+
+		plt.clf()
+		plt.close()
+
+		specplot = sns.lineplot(
+			x = "it",
+			y = "specificity",
+			data = eval_data
+		)
+		specplot.set_title("Eval Specificity Score")
+		specplot.figure.savefig(os.path.join(self.path, "eval_specificity.png"))
 
 		plt.clf()
 		plt.close()
