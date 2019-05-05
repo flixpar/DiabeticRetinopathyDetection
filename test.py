@@ -16,7 +16,7 @@ from sklearn import metrics
 from loaders.loader import RetinaImageDataset
 from models.classifier import Classifier
 
-from util.misc import get_model
+from util.misc import get_model, sensitivity_specificity
 
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
@@ -99,13 +99,15 @@ def evaluate(model, loader, threshold=0.5):
 	preds = np.array(preds).squeeze()
 
 	acc = metrics.accuracy_score(targets, preds)
-	f1 = metrics.f1_score(targets, preds, average="macro")
+	f1 = metrics.f1_score(targets, preds)
+
+	sensitivity, specificity = sensitivity_specificity(targets, preds)
 
 	print("Evaluation Results")
 	print("Accuracy:", acc)
 	print("F1:", f1)
-	print("Sensitivity:", 0)
-	print("Specificity:", 0)
+	print("Sensitivity:", sensitivity)
+	print("Specificity:", specificity)
 
 if __name__ == "__main__":
 	main()

@@ -6,6 +6,9 @@ from torch.utils.data import WeightedRandomSampler
 from models.classifier import Classifier
 from models.loss import FocalLoss, FBetaLoss
 
+import numpy as np
+from sklearn.metrics import confusion_matrix
+
 def get_model(args):
 	return Classifier(args.arch)
 
@@ -86,3 +89,40 @@ class ConstantLR(torch.optim.lr_scheduler._LRScheduler):
 
 	def get_lr(self):
 		return [base_lr for base_lr in self.base_lrs]
+
+def sensitivity_specificity(y_true, y_pred):
+
+	cfm = confusion_matrix(y_true, y_pred, labels=[0,1])
+
+	# fp = cfm.sum(axis=0) - np.diag(cfm)  
+	# fn = cfm.sum(axis=1) - np.diag(cfm)
+	# tp = np.diag(cfm)
+	# tn = cfm.sum() - (fp + fn + tp)
+
+	tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+
+	# Sensitivity, hit rate, recall, or true positive rate
+	tpr = tp/(tp+fn)
+
+	# Specificity or true negative rate
+	tnr = tn/(tn+fp)
+
+	# Precision or positive predictive value
+	ppv = tp/(tp+fp)
+
+	# Negative predictive value
+	npv = tn/(tn+fn)
+
+	# Fall out or false positive rate
+	fpr = fp/(fp+tn)
+
+	# False negative rate
+	fnr = fn/(tp+fn)
+
+	# False discovery rate
+	fdr = fp/(tp+fp)
+
+	# Overall accuracy
+	acc = (tp+tn)/(tp+fp+fn+tn)
+
+	return tpr, tnr

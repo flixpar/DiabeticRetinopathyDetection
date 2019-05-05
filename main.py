@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from loaders.loader import RetinaImageDataset
 from util.logger import Logger
-from util.misc import get_model, get_loss, get_train_sampler, get_scheduler
+from util.misc import get_model, get_loss, get_train_sampler, get_scheduler, sensitivity_specificity
 
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
@@ -138,11 +138,10 @@ def evaluate(model, loader, loss_func, logger, splitname="val", threshold=0.5):
 	preds = np.array(preds).squeeze()
 
 	acc = metrics.accuracy_score(targets, preds)
-	f1 = metrics.f1_score(targets, preds, average="macro")
+	f1 = metrics.f1_score(targets, preds)
 	loss = np.mean(losses)
 
-	sensitivity = 0
-	specificity = 0
+	sensitivity, specificity = sensitivity_specificity(targets, preds)
 
 	logger.print()
 	logger.print("Eval - {}".format(splitname))
