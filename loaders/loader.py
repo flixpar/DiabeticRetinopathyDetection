@@ -20,7 +20,7 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 		self.split = split
 		self.transforms = transforms
 		self.test_transforms = test_transforms if test_transforms else None
-		self.full_size = args.full_size
+		self.full_size = args.img_size
 		self.debug = debug
 		self.n_classes = 2
 		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
@@ -28,25 +28,19 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 		self.n_samples = n_samples
 		if self.debug: self.n_samples = 128
 
-		self.ann_data = pd.read_csv(os.path.join(self.base_path, "ann.csv"))
-		labels = [a[4] for a in self.ann_data]
+		self.data = pd.read_csv(os.path.join(self.base_path, "ann.csv")).values
 
 		# subsampling
 		if self.n_samples is not None and self.n_samples < len(self.data):
 			self.data = random.sample(self.data, self.n_samples)
 
 		# class and example weighting
-
-		self.class_weights = np.sum(labels, axis=0).astype(np.float32)
-		self.class_weights[self.class_weights == 0] = np.inf
-		self.class_weights = self.class_weights[self.class_weights != np.inf].max() / self.class_weights
-		self.class_weights = self.class_weights / self.n_classes
-
-		self.example_weights = np.asarray(labels) * self.class_weights[np.newaxis, :]
-		self.example_weights = np.sum(self.example_weights, axis=1)
-
-		self.class_weights   = torch.tensor(self.class_weights, dtype=torch.float32)
-		self.example_weights = torch.tensor(self.example_weights, dtype=torch.float32)
+		labels = torch.tensor(self.data[:,4].astype(np.float))
+		self.class_weights = [1-labels.mean(), labels.mean()]
+		self.class_weights = torch.tensor(self.class_weights)
+		self.example_weights = torch.zeros(len(self.data), dtype=torch.float32)
+		self.example_weights[labels == 0] = self.class_weights[0]
+		self.example_weights[labels == 1] = self.class_weights[1]
 
 		# set the image normalization
 		img_mean = [0.06898253, 0.17419075, 0.16167488]

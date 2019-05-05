@@ -52,10 +52,8 @@ def main():
 	args_module_spec.loader.exec_module(args_module)
 	args = args_module.Args()
 
-	test_dataset = ProteinImageDataset(split="test", args=args,
-		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False)
-	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size*4,
-		num_workers=args.workers, pin_memory=True)
+	test_dataset = RetinaImageDataset(split="test", args=args, test_transforms=args.test_augmentation, debug=False)
+	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size*4, num_workers=args.workers, pin_memory=True)
 
 	model = get_model(args)
 	state_dict = torch.load(save_path)

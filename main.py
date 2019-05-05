@@ -7,7 +7,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from loaders.loader import ProteinImageDataset
+from loaders.loader import RetinaImageDataset
 from util.logger import Logger
 from util.misc import get_model, get_loss, get_train_sampler, get_scheduler
 from models.postprocess import postprocess, compute_threshold
@@ -26,15 +26,15 @@ def main():
 
 	# datasets
 
-	train_dataset = ProteinImageDataset(split=args.train_split, args=args,
-		transforms=args.train_augmentation, channels=args.img_channels, debug=False)
+	train_dataset = RetinaImageDataset(split=args.train_split, args=args,
+		transforms=args.train_augmentation, debug=False)
 
-	train_static_dataset = ProteinImageDataset(split=args.train_split, args=args,
-		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,
+	train_static_dataset = RetinaImageDataset(split=args.train_split, args=args,
+		test_transforms=args.test_augmentation, debug=False,
 		n_samples=args.n_train_eval_samples)
 
-	val_dataset  = ProteinImageDataset(split=args.val_split, args=args,
-		test_transforms=args.test_augmentation, channels=args.img_channels, debug=False,
+	val_dataset  = RetinaImageDataset(split=args.val_split, args=args,
+		test_transforms=args.test_augmentation, debug=False,
 		n_samples=args.n_val_samples)
 
 	# sampling
