@@ -35,6 +35,6 @@ class Classifier(nn.Module):
 		x = self.classifier(x)
 
 		if not self.training:
-			x = torch.sigmoid(x)
+			x = (x, torch.sigmoid(x))
 		
 		return x

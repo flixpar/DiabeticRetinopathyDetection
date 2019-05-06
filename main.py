@@ -90,8 +90,7 @@ def train(model, train_loader, loss_func, optimizer, logger):
 		images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
 		labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
-		outputs = model(images)
-
+		outputs = model(images).squeeze()
 		loss = loss_func(outputs, labels)
 
 		optimizer.zero_grad()
@@ -116,12 +115,12 @@ def evaluate(model, loader, loss_func, logger, splitname="val", threshold=0.5):
 		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
 
 			images = images.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
-			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
+			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
-			outputs = model(images)
+			outputs, pred = model(images)
 			loss = loss_func(outputs.mean(dim=0), labels).item()
 
-			pred = outputs.cpu().numpy()
+			pred = pred.cpu().numpy()
 			labels = labels.cpu().numpy().astype(np.int).squeeze()
 
 			if pred.shape[0] != 1:

@@ -32,7 +32,8 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 
 		# subsampling
 		if self.n_samples is not None and self.n_samples < len(self.data):
-			self.data = random.sample(self.data, self.n_samples)
+			ind = np.random.choice(self.data.shape[0], self.n_samples, replace=False)
+			self.data = self.data[ind]
 
 		# class and example weighting
 		labels = torch.tensor(self.data[:,4].astype(np.float))
@@ -51,7 +52,7 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 
 		person, eye, quality, file_num, seafan, laser = self.data[index]
 
-		fn = os.path.join(self.base_path, "batch6", "{}.tif".format(file_num))
+		fn = os.path.join(self.base_path, "imgs", "{}.tif".format(file_num))
 		img = cv2.imread(fn)
 
 		if self.resize is not None:
