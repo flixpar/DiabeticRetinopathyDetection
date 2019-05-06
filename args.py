@@ -7,13 +7,13 @@ class Args:
 	###### Hyperparameters #######
 	##############################
 
-	epochs = 30                     # DEFAULT 30 (int 1-99)
-	batch_size = 16                 # DEFAULT 16 (int)
-	weight_decay = 1e-4             # DEFAULT 0 (float)
+	epochs = 50                     # DEFAULT 50 (int 1-99)
+	batch_size = 4                  # DEFAULT 16 (int)
+	weight_decay = 1e-5             # DEFAULT 0 (float)
 
 	arch = "resnet50"               # DEFAULT resnet50 (resnet50 | resnet152 | senet154 | inceptionv4)
 
-	initial_lr = 1e-5               # DEFAULT 1e-5 (float)
+	initial_lr = 3e-5               # DEFAULT 1e-5 (float)
 	lr_schedule = None              # DEFAULT None (None | poly | exp | step | multistep | cosine)
 	lr_schedule_params = {          # DEFAULT {} (dict)
 	}
@@ -22,23 +22,23 @@ class Args:
 	loss_params = {
 		"focal_gamma": 2,           # DEFAULT 2 (float)
 		"fbeta": 1                  # DEFAULT 1 (float)
-	}                    
+	}
 
-	weight_mode = "inverse"         # DEFAULT inverse ({inverse, sqrt} | None)
-	weight_method = "loss"          # DEFAULT loss (loss | sampling | None)
+	weight_mode = None              # DEFAULT None ({inverse, sqrt} | None)
+	weight_method = None            # DEFAULT None (loss | sampling | None)
 
-	device_ids = [0,1]              # DEFAULT [0,] (list int 0-8)
-	workers = 8                     # DEFAULT 8 (int 0-16)
+	device_ids = [0]                # DEFAULT [0,] (list int 0-8)
+	workers = 4                     # DEFAULT 8 (int 0-16)
 
-	log_freq = 5                    # DEFAULT 10 (int)
-	trainval_ratio = 0.90           # DEFAULT 0.9
+	log_freq = 5                    # DEFAULT 5 (int)
+	trainval_ratio = 0.80           # DEFAULT 0.80
 	n_val_samples = None            # DEFAULT None (int | None)
-	n_train_eval_samples = 1024     # DEFAULT 1024 (int | None)
+	n_train_eval_samples = 64       # DEFAULT 64 (int | None)
 
 	train_split = "train"           # DEFAULT train (train | val | trainval)
 	val_split   = "val"             # DEFAULT val (train | val | trainval)
 
-	img_size = None                 # DEFAULT None (None | int 224-1024)
+	img_size = 1024                 # DEFAULT None (None | int 224-4096)
 
 	train_augmentation = tfms.Compose([
 		tfms.HorizontalFlip(p=0.5),
@@ -61,4 +61,4 @@ class Args:
 	########## Paths #############
 	##############################
 
-	datapath  = ""
+	datapath  = "./data/"
