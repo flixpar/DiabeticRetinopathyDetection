@@ -30,6 +30,17 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 
 		self.data = pd.read_csv(os.path.join(self.base_path, "ann.csv")).values
 
+		if self.split == "train":
+			r = int(args.trainval_ratio * self.data.shape[0])
+			self.data = self.data[:r]
+		elif self.split == "val":
+			r = int(args.trainval_ratio * self.data.shape[0])
+			self.data = self.data[r:]
+		elif self.split == "trainval":
+			pass
+		else:
+			raise ValueError("Invalid dataset split.")
+
 		# subsampling
 		if self.n_samples is not None and self.n_samples < len(self.data):
 			ind = np.random.choice(self.data.shape[0], self.n_samples, replace=False)
