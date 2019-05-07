@@ -34,8 +34,10 @@ def main():
 		raise ValueError("No matching save folder: {}".format(folder_path))
 
 	save_id = sys.argv[2]
-	if os.path.exists(os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))):
+	if save_id.isdigit() and os.path.exists(os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))):
 		save_path = os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))
+	elif os.path.exists(os.path.join(folder_path, "save_{}.pth".format(save_id))):
+		save_path = os.path.join(folder_path, "save_{}.pth".format(save_id))
 	else:
 		raise Exception("Specified save not found: {}".format(save_id))
 
