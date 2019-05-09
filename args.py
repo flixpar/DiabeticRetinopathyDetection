@@ -31,7 +31,6 @@ class Args:
 	workers = 4                     # DEFAULT 8 (int 0-16)
 
 	log_freq = 5                    # DEFAULT 5 (int)
-	trainval_ratio = 0.80           # DEFAULT 0.80
 	n_val_samples = None            # DEFAULT None (int | None)
 	n_train_eval_samples = 64       # DEFAULT 64 (int | None)
 

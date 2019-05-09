@@ -17,9 +17,9 @@ def main():
 
 	best_train_ind = None
 	best_test_ind  = None
-	
+
 	for _ in tqdm.tqdm(range(20000)):
-		
+
 		k = random.randint(1, len(person_groups)-2)
 		train_group_ind = random.sample(range(len(person_groups)), k)
 		test_group_ind  = list(set(range(len(person_groups))) - set(train_group_ind))

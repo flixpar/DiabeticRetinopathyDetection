@@ -28,16 +28,14 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 		self.n_samples = n_samples
 		if self.debug: self.n_samples = 128
 
-		self.data = pd.read_csv(os.path.join(self.base_path, "ann.csv")).values
-
 		if self.split == "train":
-			r = int(args.trainval_ratio * self.data.shape[0])
-			self.data = self.data[:r]
+			self.data = pd.read_csv(os.path.join(args.datapath, "train_ann.csv"))
 		elif self.split == "val":
-			r = int(args.trainval_ratio * self.data.shape[0])
-			self.data = self.data[r:]
+			self.data = pd.read_csv(os.path.join(args.datapath, "test_ann.csv"))
 		elif self.split == "trainval":
-			pass
+			d1 = pd.read_csv(os.path.join(args.datapath, "train_ann.csv"))
+			d2 = pd.read_csv(os.path.join(args.datapath, "test_ann.csv"))
+			self.data = pd.concat([d1, d2])
 		else:
 			raise ValueError("Invalid dataset split.")
 
