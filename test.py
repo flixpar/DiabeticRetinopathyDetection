@@ -83,7 +83,6 @@ def evaluate(model, loader, threshold=0.5):
 				n_copies = 1
 
 			images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
-			labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
 			output = model(images)
 
