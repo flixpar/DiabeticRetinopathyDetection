@@ -5,25 +5,25 @@ import pretrainedmodels
 
 class Classifier(nn.Module):
 
-	def __init__(self, arch="resnet152", n_input_channels=3):
+	def __init__(self, arch="resnet152"):
 		super(Classifier, self).__init__()
 
 		valid_model_sizes = {
-			"resnet50": 2048,
-			"resnet152": 2048,
-			"inceptionv4": 1536,
-			"senet154": 2048,
-			"inceptionv3": 2048,
-			"densenet169": 2048,
-			"densenet201": 2048,
-			"xception": 2048,
-			"se_resnet50": 2048,
-			"se_resnet152": 2048,
+			"resnet50":            2048,
+			"resnet152":           2048,
+			"inceptionv4":         1536,
+			"senet154":            2048,
+			"inceptionv3":         2048,
+			"densenet169":         2048,
+			"densenet201":         2048,
+			"xception":            2048,
+			"se_resnet50":         2048,
+			"se_resnet152":        2048,
 			"se_resnext101_32x4d": 2048,
-			"resnext101_62x4d": 2048,
-			"polynet": 2048,
-			"pnasnet5large": 2048,
-			"nasnetalarge": 2048,
+			"resnext101_62x4d":    2048,
+			"polynet":             2048,
+			"pnasnet5large":       2048,
+			"nasnetalarge":        2048,
 		}
 		valid_models = list(valid_model_sizes.keys())
 
@@ -35,8 +35,6 @@ class Classifier(nn.Module):
 
 		self.pool = nn.AdaptiveAvgPool2d(1)
 		self.classifier = nn.Linear(self.feat_size, 1)
-
-		nn.init.kaiming_normal_(self.classifier.weight, mode='fan_out', nonlinearity='relu')
 
 	def forward(self, x):
 
