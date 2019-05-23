@@ -7,9 +7,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from loaders.loader import RetinaImageDataset
 from util.logger import Logger
-from util.misc import get_model, get_loss, get_train_sampler, get_scheduler, sensitivity_specificity
+from util.misc import get_dataset_class, get_model, get_loss, get_train_sampler, get_scheduler, sensitivity_specificity
 
 from args import Args
 args = Args()
@@ -20,14 +19,16 @@ def main():
 
 	# datasets
 
-	train_dataset = RetinaImageDataset(split=args.train_split, args=args,
+	Dataset = get_dataset_class(args)
+
+	train_dataset = Dataset(split=args.train_split, args=args,
 		transforms=args.train_augmentation, debug=args.debug)
 
-	train_static_dataset = RetinaImageDataset(split=args.train_split, args=args,
+	train_static_dataset = Dataset(split=args.train_split, args=args,
 		test_transforms=args.test_augmentation, debug=args.debug,
 		n_samples=args.n_train_eval_samples)
 
-	val_dataset  = RetinaImageDataset(split=args.val_split, args=args,
+	val_dataset  = Dataset(split=args.val_split, args=args,
 		test_transforms=args.test_augmentation, debug=args.debug,
 		n_samples=args.n_val_samples)
 

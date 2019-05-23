@@ -3,14 +3,33 @@ from torch import nn
 import torch.optim.lr_scheduler
 from torch.utils.data import WeightedRandomSampler
 
+from loaders.loader import RetinaImageDataset
+from loaders.kaggle_loader import KaggleRetinaDataset
 from models.classifier import Classifier
 from models.loss import FocalLoss, FBetaLoss
 
 import numpy as np
 from sklearn.metrics import confusion_matrix
+from collections import OrderedDict
+
+def get_dataset_class(args):
+	if args.pretraining: return KaggleRetinaDataset
+	else: return RetinaImageDataset
 
 def get_model(args):
-	return Classifier(args.arch)
+	model = Classifier(args.arch)
+
+	if args.pretrained:
+		save_path = 0
+		state_dict = torch.load(save_path)
+		if "module." in list(state_dict.keys())[0]:
+			temp_state = OrderedDict()
+			for k, v in state_dict.items():
+				temp_state[k.split("module.")[-1]] = v
+			state_dict = temp_state
+		model.load_state_dict(state_dict)
+
+	return model
 
 def get_loss(args):
 
@@ -77,7 +96,7 @@ class PolynomialLR(torch.optim.lr_scheduler._LRScheduler):
 			return [base_lr for base_lr in self.base_lrs]
 		else:
 			factor = (1 - (self.last_epoch / self.max_iter)) ** self.gamma
-			return [base_lr * factor for base_lr in self.base_lrs] 
+			return [base_lr * factor for base_lr in self.base_lrs]
 
 class ConstantLR(torch.optim.lr_scheduler._LRScheduler):
 	def __init__(self, optimizer, last_epoch=-1):

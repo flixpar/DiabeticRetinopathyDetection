@@ -31,6 +31,7 @@ class Logger:
 			self.dt = datetime.datetime.now().strftime("%m%d_%H%M")
 			self.path = f"./saves/{self.dt}"
 			if args is not None and args.debug: self.path = self.path + "_debug"
+			if args is not None and args.pretraining: self.path = self.path + "_pretraining"
 			if not os.path.exists(self.path):
 				os.makedirs(self.path)
 			self.losses = []
