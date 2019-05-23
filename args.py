@@ -25,6 +25,10 @@ class Args:
 	device_ids = [0]                # DEFAULT [0,] (list int 0-8)
 	workers = 4                     # DEFAULT 4 (int >=0)
 
+	pretraining = True              # DEFAULT False (bool)
+	pretrained = False              # DEFAULT False (bool)
+	pretrain_info = None            # DEFAULT None (None | tuple(str, str | int))
+
 	log_freq = 5                    # DEFAULT 5 (int >0)
 	n_val_samples = None            # DEFAULT None (int >0 | None)
 	n_train_eval_samples = 64       # DEFAULT 64 (int >0 | None)
@@ -58,3 +62,4 @@ class Args:
 	##############################
 
 	datapath  = "./data/"
+	kaggle_datapath = "/home/felix/data/kaggle/"

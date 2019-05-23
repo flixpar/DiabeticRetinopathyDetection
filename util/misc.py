@@ -20,7 +20,14 @@ def get_model(args):
 	model = Classifier(args.arch)
 
 	if args.pretrained:
-		save_path = 0
+
+		if args.pretrain_info is None or len(args.pretrain_info) != 2: raise ValueError("Invalid pretraining info.")
+		save_folder, save_id = args.pretrain_info
+		if isinstance(save_id, int):
+			save_path = os.path.join("./saves", save_folder, f"{save_id:03d}.pth")
+		else:
+			save_path = os.path.join("./saves", save_folder, f"{save_id}.pth")
+
 		state_dict = torch.load(save_path)
 		if "module." in list(state_dict.keys())[0]:
 			temp_state = OrderedDict()
