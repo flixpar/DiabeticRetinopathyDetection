@@ -18,8 +18,11 @@ from models.classifier import Classifier
 
 from util.misc import get_model, sensitivity_specificity
 
-import warnings
-from sklearn.exceptions import UndefinedMetricWarning
+import matplotlib
+matplotlib.use("agg")
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(style="darkgrid")
 
 primary_device = torch.device("cuda:0")
 
@@ -63,13 +66,15 @@ def main():
 	model.to(primary_device)
 
 	print("Test")
-	evaluate(model, test_loader)
+	evaluate(model, test_loader, folder_path, save_id)
 
-def evaluate(model, loader, threshold=0.5):
+def evaluate(model, loader, folder_path, save_id):
 	model.eval()
 
 	preds = []
 	targets = []
+
+	threshold = 0.5
 
 	with torch.no_grad():
 		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
@@ -90,8 +95,7 @@ def evaluate(model, loader, threshold=0.5):
 				output = torch.stack(output, dim=0).squeeze(-1)
 				output = (0.5 * output[:, 0]) + (0.5 * output[:, 1:].mean(dim=1))
 
-			pred = output > threshold
-			pred = pred.cpu().numpy().astype(np.int).squeeze().tolist()
+			pred = output.cpu().numpy().squeeze().tolist()
 			if not isinstance(pred, list): pred = [pred]
 			preds.extend(pred)
 
@@ -101,6 +105,13 @@ def evaluate(model, loader, threshold=0.5):
 
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()
+
+	test_folder_path = os.path.join(folder_path, f"test_{save_id}")
+	if not os.path.isdir(test_folder_path): os.makedirs(test_folder_path)
+	create_plots(targets, preds, test_folder_path)
+
+	preds = preds > threshold
+	preds = preds.astype(np.int)
 
 	acc = metrics.accuracy_score(targets, preds)
 	f1 = metrics.f1_score(targets, preds)
@@ -112,6 +123,60 @@ def evaluate(model, loader, threshold=0.5):
 	print(f"F1:          {f1:.4f}")
 	print(f"Sensitivity: {sensitivity:.4f}")
 	print(f"Specificity: {specificity:.4f}")
+
+	with open(os.path.join(test_folder_path, "results.txt"), "w") as f:
+		f.write("Test Results\n")
+		f.write(f"Accuracy:    {acc:.4f}\n")
+		f.write(f"F1:          {f1:.4f}\n")
+		f.write(f"Sensitivity: {sensitivity:.4f}\n")
+		f.write(f"Specificity: {specificity:.4f}\n")
+
+def create_plots(targets, preds, folder_path):
+
+	sensitivity_specificity_curve(targets, preds)
+	plt.savefig(os.path.join(folder_path, "sensitivity_specificity.png"))
+	plt.clf()
+	plt.close()
+
+	precision_recall_curve(targets, preds)
+	plt.savefig(os.path.join(folder_path, "precision_recall.png"))
+	plt.clf()
+	plt.close()
+
+	roc_curve(targets, preds)
+	plt.savefig(os.path.join(folder_path, "roc.png"))
+	plt.clf()
+	plt.close()
+
+def sensitivity_specificity_curve(targets, preds):
+
+	thresholds = np.linspace(0.0, 1.0, 500)
+	points = []
+
+	for t in thresholds:
+		p = preds > t
+		sens, spec = sensitivity_specificity(targets, p)
+		points.append((sens, spec))
+
+	points = np.array(points)
+	plt.plot(points[:,0], points[:,1])
+	plt.title("Sensitivity vs Specificity")
+	plt.xlabel("sensitivity")
+	plt.ylabel("specificity")
+
+def precision_recall_curve(targets, preds):
+	prec, rec, _ = metrics.precision_recall_curve(targets, preds)
+
+	plt.plot(prec, rec)
+	plt.title("Precision vs Recall")
+	plt.xlabel("precision")
+	plt.ylabel("recall")
+
+def roc_curve(targets, preds):
+	fpr, tpr, _ = metrics.roc_curve(targets, preds)
+
+	plt.plot(fpr, tpr)
+	plt.title("ROC Curve")
 
 if __name__ == "__main__":
 	main()
