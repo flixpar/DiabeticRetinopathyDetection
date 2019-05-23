@@ -25,14 +25,14 @@ def main():
 	# datasets
 
 	train_dataset = RetinaImageDataset(split=args.train_split, args=args,
-		transforms=args.train_augmentation, debug=False)
+		transforms=args.train_augmentation, debug=args.debug)
 
 	train_static_dataset = RetinaImageDataset(split=args.train_split, args=args,
-		test_transforms=args.test_augmentation, debug=False,
+		test_transforms=args.test_augmentation, debug=args.debug,
 		n_samples=args.n_train_eval_samples)
 
 	val_dataset  = RetinaImageDataset(split=args.val_split, args=args,
-		test_transforms=args.test_augmentation, debug=False,
+		test_transforms=args.test_augmentation, debug=args.debug,
 		n_samples=args.n_val_samples)
 
 	# sampling

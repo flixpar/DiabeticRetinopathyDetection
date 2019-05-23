@@ -26,7 +26,7 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 		self.resize = tfms.Resize(args.img_size, args.img_size) if args.img_size is not None else None
 		self.base_path = args.datapath
 		self.n_samples = n_samples
-		if self.debug: self.n_samples = 128
+		if self.debug: self.n_samples = 128 if n_samples is None else min([128, n_samples])
 
 		if self.split == "train":
 			if args.include_laser: self.data = pd.read_csv(os.path.join(args.datapath, "train_ann.csv")).values

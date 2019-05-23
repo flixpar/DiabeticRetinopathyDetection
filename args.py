@@ -28,6 +28,7 @@ class Args:
 	log_freq = 5                    # DEFAULT 5 (int >0)
 	n_val_samples = None            # DEFAULT None (int >0 | None)
 	n_train_eval_samples = 64       # DEFAULT 64 (int >0 | None)
+	debug = False                   # DEFAULT False (bool)
 
 	train_split = "train"           # DEFAULT train (train | val | trainval)
 	val_split   = "val"             # DEFAULT val (train | val | trainval)
