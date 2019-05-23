@@ -13,6 +13,17 @@ class Classifier(nn.Module):
 			"resnet152": 2048,
 			"inceptionv4": 1536,
 			"senet154": 2048,
+			"inceptionv3": 2048,
+			"densenet169": 2048,
+			"densenet201": 2048,
+			"xception": 2048,
+			"se_resnet50": 2048,
+			"se_resnet152": 2048,
+			"se_resnext101_32x4d": 2048,
+			"resnext101_62x4d": 2048,
+			"polynet": 2048,
+			"pnasnet5large": 2048,
+			"nasnetalarge": 2048,
 		}
 		valid_models = list(valid_model_sizes.keys())
 
