@@ -18,7 +18,7 @@ sns.set(style="darkgrid")
 
 class Logger:
 
-	def __init__(self, path=None):
+	def __init__(self, path=None, args=None):
 
 		if path is not None:
 			if not os.path.isdir(path):
@@ -29,22 +29,23 @@ class Logger:
 
 		else:
 			self.dt = datetime.datetime.now().strftime("%m%d_%H%M")
-			self.path = "./saves/{}".format(self.dt)
+			self.path = f"./saves/{self.dt}"
+			if args is not None and args.debug: self.path = self.path + "_debug"
 			if not os.path.exists(self.path):
 				os.makedirs(self.path)
 			self.losses = []
-			self.scores = []
-			self.eval_metrics = set()
+			self.train_scores = []
+			self.eval_scores = []
 			self.main_log_fn = os.path.join(self.path, "log.txt")
 			shutil.copy2("args.py", self.path)
 
 	def save_model(self, model, epoch):
 		if isinstance(epoch, int):
-			fn = os.path.join(self.path, "save_{:03d}.pth".format(epoch))
+			fn = os.path.join(self.path, f"save_{epoch:03d}.pth")
 		else:
-			fn = os.path.join(self.path, "save_{}.pth".format(epoch))
+			fn = os.path.join(self.path, f"save_{epoch}.pth")
 		torch.save(model.state_dict(), fn)
-		self.print("Saved model to: {}\n".format(fn))
+		self.print(f"Saved model to: {fn}\n")
 
 	def print(self, *x):
 		print(*x)
@@ -57,12 +58,13 @@ class Logger:
 	def log_loss(self, l):
 		self.losses.append(l)
 
-	def log_eval(self, data):
-		self.eval_metrics = set.union(self.eval_metrics, set(data.keys()))
-		for k in self.eval_metrics:
-			if not k in data:
-				data[k] = ''
-		self.scores.append(data)
+	def log_eval(self, data, splitname):
+		if splitname == "train":
+			self.train_scores.append(data)
+		elif splitname == "val":
+			self.eval_scores.append(data)
+		else:
+			raise ValueError("Invalid splitname for logger.")
 
 	def run_test(self, epoch):
 		cmd = ["python3", "test.py", self.dt, epoch]
@@ -78,36 +80,25 @@ class Logger:
 				row = {"it": it, "loss": loss}
 				csvwriter.writerow(row)
 
-		train_metrics = [s.split('-')[-1] for s in self.eval_metrics if "train" in s]
-		val_metrics   = [s.split('-')[-1] for s in self.eval_metrics if "val" in s]
-
 		with open(os.path.join(self.path, "train_eval.csv"), "w") as f:
-			csvwriter = csv.DictWriter(f, ["it"] + sorted(train_metrics))
+			cols = ["it"] + sorted(list(set(self.train_scores[0].keys()) - set(["it"])))
+			csvwriter = csv.DictWriter(f, cols)
 			csvwriter.writeheader()
-			it = 0
-			for score in self.scores:
-				row = {k.split('-')[-1]:v for k,v in score.items() if "train" in k}
-				if not row: continue
-				else: it += 1
-				row["it"] = it
+			for row in self.train_scores:
 				csvwriter.writerow(row)
 
 		with open(os.path.join(self.path, "eval.csv"), "w") as f:
-			csvwriter = csv.DictWriter(f, ["it"] + sorted(val_metrics))
+			cols = ["it"] + sorted(list(set(self.eval_scores[0].keys()) - set(["it"])))
+			csvwriter = csv.DictWriter(f, cols)
 			csvwriter.writeheader()
-			it = 0
-			for score in self.scores:
-				row = {k.split('-')[-1]:v for k,v in score.items() if "val" in k}
-				if not row: continue
-				else: it += 1
-				row["it"] = it
+			for row in self.eval_scores:
 				csvwriter.writerow(row)
 
 		plt.clf()
 
 		loss_data = pd.read_csv(os.path.join(self.path, "loss.csv"))
 		loss_means = loss_data.copy()
-		loss_means.loss = loss_means.loss.rolling(200, center=True, min_periods=1).mean()
+		loss_means.loss = loss_means.loss.rolling(20, center=True, min_periods=1).mean()
 		lossplot = sns.lineplot(
 			x = "it",
 			y = "loss",

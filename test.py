@@ -31,15 +31,15 @@ def main():
 	folder_name = sys.argv[1]
 	folder_path = os.path.join("./saves", folder_name)
 	if not os.path.exists(folder_path):
-		raise ValueError("No matching save folder: {}".format(folder_path))
+		raise ValueError(f"No matching save folder: {folder_path}")
 
 	save_id = sys.argv[2]
-	if save_id.isdigit() and os.path.exists(os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))):
-		save_path = os.path.join(folder_path, "save_{:03d}.pth".format(int(save_id)))
-	elif os.path.exists(os.path.join(folder_path, "save_{}.pth".format(save_id))):
-		save_path = os.path.join(folder_path, "save_{}.pth".format(save_id))
+	if save_id.isdigit() and os.path.exists(os.path.join(folder_path, f"save_{int(save_id):03d}.pth")):
+		save_path = os.path.join(folder_path, f"save_{int(save_id):03d}.pth")
+	elif os.path.exists(os.path.join(folder_path, f"save_{save_id}.pth")):
+		save_path = os.path.join(folder_path, f"save_{save_id}.pth")
 	else:
-		raise Exception("Specified save not found: {}".format(save_id))
+		raise Exception(f"Specified save not found: {save_id}")
 
 	args_module_spec = importlib.util.spec_from_file_location("args", os.path.join(folder_path, "args.py"))
 	args_module = importlib.util.module_from_spec(args_module_spec)
@@ -107,11 +107,11 @@ def evaluate(model, loader, threshold=0.5):
 
 	sensitivity, specificity = sensitivity_specificity(targets, preds)
 
-	print("Evaluation Results")
-	print("Accuracy:", acc)
-	print("F1:", f1)
-	print("Sensitivity:", sensitivity)
-	print("Specificity:", specificity)
+	print("Test Results")
+	print(f"Accuracy:    {acc:.4f}")
+	print(f"F1:          {f1:.4f}")
+	print(f"Sensitivity: {sensitivity:.4f}")
+	print(f"Specificity: {specificity:.4f}")
 
 if __name__ == "__main__":
 	main()

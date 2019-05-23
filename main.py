@@ -11,14 +11,10 @@ from loaders.loader import RetinaImageDataset
 from util.logger import Logger
 from util.misc import get_model, get_loss, get_train_sampler, get_scheduler, sensitivity_specificity
 
-import warnings
-from sklearn.exceptions import UndefinedMetricWarning
-warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-
 from args import Args
 args = Args()
 
-primary_device = torch.device("cuda:{}".format(args.device_ids[0]))
+primary_device = torch.device(f"cuda:{args.device_ids[0]}")
 
 def main():
 
@@ -60,15 +56,15 @@ def main():
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr, weight_decay=args.weight_decay)
 	scheduler = get_scheduler(args, optimizer)
 
-	logger = Logger()
+	logger = Logger(args=args)
 	max_score = 0
 
 	for epoch in range(1, args.epochs+1):
-		logger.print("Epoch {}".format(epoch))
+		logger.print(f"Epoch {epoch}")
 		scheduler.step()
 		train(model, train_loader, loss_func, optimizer, logger)
-		_, threshold = evaluate(model, train_static_loader, loss_func, logger, splitname="train")
-		score, _ = evaluate(model, val_loader, loss_func, logger, splitname="val", threshold=threshold)
+		evaluate(model, train_static_loader, loss_func, logger, epoch, "train")
+		score = evaluate(model, val_loader, loss_func, logger, epoch, "val")
 		logger.save()
 		if score > max_score:
 			logger.save_model(model.module, epoch)
@@ -101,10 +97,10 @@ def train(model, train_loader, loss_func, optimizer, logger):
 		logger.log_loss(loss.item())
 		if i % (len(train_loader)//args.log_freq) == 0:
 			mean_loss = np.mean(logger.losses[-10:])
-			tqdm.tqdm.write("Train loss: {}".format(mean_loss))
-			logger.log("Train loss: {}".format(mean_loss))
+			tqdm.tqdm.write(f"Train loss: {mean_loss}")
+			logger.log(f"Train loss: {mean_loss}")
 
-def evaluate(model, loader, loss_func, logger, splitname="val", threshold=0.5):
+def evaluate(model, loader, loss_func, logger, it, splitname="val", threshold=0.5):
 	model.eval()
 
 	losses = []
@@ -143,22 +139,23 @@ def evaluate(model, loader, loss_func, logger, splitname="val", threshold=0.5):
 	sensitivity, specificity = sensitivity_specificity(targets, preds)
 
 	logger.print()
-	logger.print("Eval - {}".format(splitname))
-	logger.print("Loss:", loss)
-	logger.print("Accuracy:", acc)
-	logger.print("F1:", f1)
-	logger.print("Sensitivity:", sensitivity)
-	logger.print("Specificity:", specificity)
+	logger.print(f"Eval {it} - {splitname}")
+	logger.print(f"Loss:        {loss:.4f}")
+	logger.print(f"Accuracy:    {acc:.4f}")
+	logger.print(f"F1:          {f1:.4f}")
+	logger.print(f"Sensitivity: {sensitivity:.4f}")
+	logger.print(f"Specificity: {specificity:.4f}")
 	logger.print()
 
 	logger.log_eval({
-		f"{splitname}-loss": loss,
-		f"{splitname}-acc": acc,
-		f"{splitname}-f1": f1,
-		f"{splitname}-sensitivity": sensitivity,
-		f"{splitname}-specificity": specificity,
-	})
-	return f1, threshold
+		"it": it,
+		"loss": loss,
+		"acc": acc,
+		"f1": f1,
+		"sensitivity": sensitivity,
+		"specificity": specificity,
+	}, splitname)
+	return f1
 
 if __name__ == "__main__":
 	main()

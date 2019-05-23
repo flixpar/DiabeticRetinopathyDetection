@@ -29,7 +29,7 @@ def get_loss(args):
 	elif args.loss == "softmargin":
 		loss_func = nn.SoftMarginLoss()
 	else:
-		raise ValueError("Invalid loss function specifier: {}".format(args.loss))
+		raise ValueError(f"Invalid loss function specifier: {args.loss}")
 
 	return loss_func
 

@@ -70,7 +70,7 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 
 		person, eye, quality, file_num, seafan, laser = self.data[index]
 
-		fn = os.path.join(self.base_path, "imgs", "{}.tif".format(file_num))
+		fn = os.path.join(self.base_path, "imgs", f"{file_num}.tif")
 		img = cv2.imread(fn)
 
 		if self.resize is not None:
