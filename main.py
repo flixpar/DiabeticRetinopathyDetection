@@ -56,7 +56,7 @@ def main():
 	model.to(primary_device)
 
 	# training
-	loss_func = get_loss(args, train_dataset.class_weights).to(primary_device)
+	loss_func = get_loss(args).to(primary_device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr, weight_decay=args.weight_decay)
 	scheduler = get_scheduler(args, optimizer)
 
