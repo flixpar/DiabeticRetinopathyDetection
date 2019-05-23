@@ -65,7 +65,7 @@ class Logger:
 		self.scores.append(data)
 
 	def run_test(self, epoch):
-		cmd = ["python3", "test.py", self.dt, epoch, "False"]
+		cmd = ["python3", "test.py", self.dt, epoch]
 		self.print(" ".join(cmd))
 		subprocess.run(cmd, shell=False)
 

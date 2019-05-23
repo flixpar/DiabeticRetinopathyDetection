@@ -25,7 +25,7 @@ primary_device = torch.device("cuda:0")
 
 def main():
 
-	if not len(sys.argv) == 4:
+	if not len(sys.argv) == 3:
 		raise ValueError("Not enough arguments")
 
 	folder_name = sys.argv[1]
@@ -47,7 +47,7 @@ def main():
 	args = args_module.Args()
 
 	test_dataset = RetinaImageDataset(split="test", args=args, test_transforms=args.test_augmentation, debug=False)
-	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size*4, num_workers=args.workers, pin_memory=True)
+	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size*2, num_workers=args.workers, pin_memory=True)
 
 	model = get_model(args)
 	state_dict = torch.load(save_path)
@@ -73,7 +73,6 @@ def evaluate(model, loader, threshold=0.5):
 
 	with torch.no_grad():
 		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
-			labels = labels.cpu().numpy().astype(np.int).squeeze()
 
 			if len(images.shape) == 5:
 				n_examples, n_copies, c, w, h = images.shape
@@ -84,17 +83,21 @@ def evaluate(model, loader, threshold=0.5):
 
 			images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
 
-			output = model(images)
+			_, output = model(images)
 
 			if n_copies != 1:
 				output = torch.chunk(output, chunks=n_examples, dim=0)
-				output = torch.stack(output, dim=0)
-				output = (0.5 * output[:, 0, :]) + (0.5 * output[:, 1:, :].mean(axis=1))
+				output = torch.stack(output, dim=0).squeeze(-1)
+				output = (0.5 * output[:, 0]) + (0.5 * output[:, 1:].mean(dim=1))
 
-			pred = output.cpu().numpy() > threshold
+			pred = output > threshold
+			pred = pred.cpu().numpy().astype(np.int).squeeze().tolist()
+			if not isinstance(pred, list): pred = [pred]
+			preds.extend(pred)
 
-			preds.append(pred)
-			targets.append(labels)
+			labels = labels.cpu().numpy().astype(np.int).squeeze().tolist()
+			if not isinstance(labels, list): labels = [labels]
+			targets.extend(labels)
 
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()

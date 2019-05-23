@@ -90,7 +90,7 @@ def train(model, train_loader, loss_func, optimizer, logger):
 		images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
 		labels = labels.to(primary_device, dtype=torch.float32, non_blocking=True)
 
-		outputs = model(images).squeeze()
+		outputs = model(images).squeeze(-1)
 		loss = loss_func(outputs, labels)
 
 		optimizer.zero_grad()
