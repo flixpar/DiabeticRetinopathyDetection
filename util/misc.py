@@ -12,33 +12,29 @@ from sklearn.metrics import confusion_matrix
 def get_model(args):
 	return Classifier(args.arch)
 
-def get_loss(args, weights):
-
-	if args.weight_method == "loss":
-		if args.weight_mode is not None and "inverse" in args.weight_mode:
-			class_weights = weights
-			if "sqrt" in args.weight_mode:
-				class_weights = torch.sqrt(class_weights)
-		else:
-			class_weights = None
-	else:
-		class_weights = None
+def get_loss(args):
 
 	if args.loss == "bce":
-		loss_func = nn.BCEWithLogitsLoss(weight=class_weights, pos_weight=None)
+		loss_func = nn.BCEWithLogitsLoss()
 	elif args.loss == "focal":
-		loss_func = FocalLoss(weight=class_weights, gamma=args.focal_gamma)
+		if "focal_gamma" in args.loss_params:
+			loss_func = FocalLoss(gamma=args.loss_params["focal_gamma"])
+		else:
+			loss_func = FocalLoss()
 	elif args.loss == "fbeta":
-		loss_func = FBetaLoss(weight=class_weights, beta=args.fbeta, soft=True)
+		if "fbeta" in args.loss_params:
+			loss_func = FBetaLoss(beta=args.loss_params["fbeta"], soft=True)
+		else:
+			loss_func = FBetaLoss(soft=True)
 	elif args.loss == "softmargin":
-		loss_func = nn.SoftMarginLoss(weight=class_weights)
+		loss_func = nn.SoftMarginLoss()
 	else:
 		raise ValueError("Invalid loss function specifier: {}".format(args.loss))
 
 	return loss_func
 
 def get_train_sampler(args, dataset):
-	if args.weight_method == "sampling":
+	if args.example_weighting:
 		return WeightedRandomSampler(weights=dataset.example_weights, num_samples=len(dataset))
 	else:
 		return None
@@ -51,7 +47,7 @@ def get_scheduler(args, optimizer):
 		decay_iter = 1
 		return PolynomialLR(optimizer, max_iter, decay_iter, gamma)
 	elif args.lr_schedule == "exp":
-		gamma = params["gamma"] if "gamma" in params else 0.9
+		gamma = params["gamma"] if "gamma" in params else 0.95
 		return torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma)
 	elif args.lr_schedule == "step":
 		step_size = params["step_size"] if "step_size" in params else 5
@@ -93,11 +89,6 @@ class ConstantLR(torch.optim.lr_scheduler._LRScheduler):
 def sensitivity_specificity(y_true, y_pred):
 
 	cfm = confusion_matrix(y_true, y_pred, labels=[0,1])
-
-	# fp = cfm.sum(axis=0) - np.diag(cfm)  
-	# fn = cfm.sum(axis=1) - np.diag(cfm)
-	# tp = np.diag(cfm)
-	# tn = cfm.sum() - (fp + fn + tp)
 
 	tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
 
