@@ -11,6 +11,7 @@ from models.loss import FocalLoss, FBetaLoss
 import numpy as np
 from sklearn.metrics import confusion_matrix
 from collections import OrderedDict
+import os
 
 def get_dataset_class(args):
 	if args.pretraining: return KaggleRetinaDataset
@@ -24,9 +25,9 @@ def get_model(args):
 		if args.pretrain_info is None or len(args.pretrain_info) != 2: raise ValueError("Invalid pretraining info.")
 		save_folder, save_id = args.pretrain_info
 		if isinstance(save_id, int):
-			save_path = os.path.join("./saves", save_folder, f"{save_id:03d}.pth")
+			save_path = os.path.join("./saves", save_folder, f"save_{save_id:03d}.pth")
 		else:
-			save_path = os.path.join("./saves", save_folder, f"{save_id}.pth")
+			save_path = os.path.join("./saves", save_folder, f"save_{save_id}.pth")
 
 		state_dict = torch.load(save_path)
 		if "module." in list(state_dict.keys())[0]:
