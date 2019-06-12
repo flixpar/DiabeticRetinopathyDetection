@@ -24,6 +24,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set(style="darkgrid")
 
+import warnings
+warnings.simplefilter("ignore")
+
 primary_device = torch.device("cuda:0")
 
 def main(cfg):

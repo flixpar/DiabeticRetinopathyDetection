@@ -10,6 +10,9 @@ import torch.nn.functional as F
 from util.logger import Logger
 from util.misc import get_dataset_class, get_model, get_loss, get_train_sampler, get_scheduler, sensitivity_specificity
 
+import warnings
+warnings.simplefilter("ignore")
+
 from args import Args
 args = Args()
 
