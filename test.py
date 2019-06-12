@@ -1,22 +1,22 @@
 import os
-import sys
 import tqdm
-import glob
+import argparse
 import numpy as np
 import importlib.util
 from collections import OrderedDict
+import datetime
+import itertools
 
 import torch
 from torch import nn
 import torch.nn.functional as F
-import albumentations as tfms
 
 from sklearn import metrics
 
 from loaders.loader import RetinaImageDataset
 from models.classifier import Classifier
 
-from util.misc import get_model, sensitivity_specificity
+from util.misc import get_model, sensitivity_specificity, confusion_matrix
 
 import matplotlib
 matplotlib.use("agg")
@@ -26,30 +26,25 @@ sns.set(style="darkgrid")
 
 primary_device = torch.device("cuda:0")
 
-def main():
+def main(cfg):
 
-	if not len(sys.argv) == 3:
-		raise ValueError("Not enough arguments")
-
-	folder_name = sys.argv[1]
-	folder_path = os.path.join("./saves", folder_name)
+	folder_path = os.path.join("./saves", cfg.folder_name)
 	if not os.path.exists(folder_path):
 		raise ValueError(f"No matching save folder: {folder_path}")
 
-	save_id = sys.argv[2]
-	if save_id.isdigit() and os.path.exists(os.path.join(folder_path, f"save_{int(save_id):03d}.pth")):
-		save_path = os.path.join(folder_path, f"save_{int(save_id):03d}.pth")
-	elif os.path.exists(os.path.join(folder_path, f"save_{save_id}.pth")):
-		save_path = os.path.join(folder_path, f"save_{save_id}.pth")
+	if cfg.save_id.isdigit() and os.path.exists(os.path.join(folder_path, f"save_{int(cfg.save_id):03d}.pth")):
+		save_path = os.path.join(folder_path, f"save_{int(cfg.save_id):03d}.pth")
+	elif os.path.exists(os.path.join(folder_path, f"save_{cfg.save_id}.pth")):
+		save_path = os.path.join(folder_path, f"save_{cfg.save_id}.pth")
 	else:
-		raise Exception(f"Specified save not found: {save_id}")
+		raise Exception(f"Specified save not found: {cfg.save_id}")
 
 	args_module_spec = importlib.util.spec_from_file_location("args", os.path.join(folder_path, "args.py"))
 	args_module = importlib.util.module_from_spec(args_module_spec)
 	args_module_spec.loader.exec_module(args_module)
 	args = args_module.Args()
 
-	test_dataset = RetinaImageDataset(split="test", args=args, test_transforms=args.test_augmentation, debug=False)
+	test_dataset = RetinaImageDataset(split=cfg.split, args=args, test_transforms=args.test_augmentation, debug=False)
 	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size*2, num_workers=args.workers, pin_memory=True)
 
 	model = get_model(args)
@@ -60,21 +55,18 @@ def main():
 			temp_state[k.replace("module.", "", 1)] = v
 		state_dict = temp_state
 	model.load_state_dict(state_dict)
-	model.cuda()
-
-	model = nn.DataParallel(model, device_ids=args.device_ids)
 	model.to(primary_device)
 
 	print("Test")
-	evaluate(model, test_loader, folder_path, save_id)
+	evaluate(model, test_loader, folder_path, cfg)
 
-def evaluate(model, loader, folder_path, save_id):
+def evaluate(model, loader, folder_path, cfg):
 	model.eval()
 
 	preds = []
 	targets = []
 
-	threshold = 0.5
+	threshold = cfg.thresh
 
 	with torch.no_grad():
 		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
@@ -106,8 +98,8 @@ def evaluate(model, loader, folder_path, save_id):
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()
 
-	dt = datetime.datetime.now().strftime("%m%d_%H%M")
-	test_folder_path = os.path.join(folder_path, f"test_{save_id}_{dt}")
+	dt = datetime.datetime.now().strftime("%m%d%H%M")
+	test_folder_path = os.path.join(folder_path, f"test_{dt}")
 	if not os.path.isdir(test_folder_path): os.makedirs(test_folder_path)
 	create_plots(targets, preds, test_folder_path)
 
@@ -120,6 +112,8 @@ def evaluate(model, loader, folder_path, save_id):
 	f1 = metrics.f1_score(targets, preds)
 
 	sensitivity, specificity = sensitivity_specificity(targets, preds)
+
+	confusion(targets, preds, test_folder_path)
 
 	print("Test Results")
 	print(f"Accuracy:    {acc:.4f}")
@@ -136,12 +130,25 @@ def evaluate(model, loader, folder_path, save_id):
 		f.write(f"Sensitivity: {sensitivity:.4f}\n")
 		f.write(f"Specificity: {specificity:.4f}\n")
 
+	with open(os.path.join(test_folder_path, "cfg.txt"), "w") as f:
+		f.write(f"folder:    {cfg.folder_name}\n")
+		f.write(f"epoch:     {cfg.save_id}\n")
+		f.write(f"dataset:   {cfg.split}\n")
+		f.write(f"threshold: {cfg.thresh}\n")
+
 def create_plots(targets, preds, folder_path):
 
-	sensitivity_specificity_curve(targets, preds)
+	sens_spec_list = sensitivity_specificity_curve(targets, preds)
 	plt.savefig(os.path.join(folder_path, "sensitivity_specificity.png"))
 	plt.clf()
 	plt.close()
+
+	print("Sensitivity vs Specificity")
+	with open(os.path.join(folder_path, "sensitivity_specificity.txt"), "w") as f:
+		for t, sens, spec in sens_spec_list:
+			row_str = f"{t:.3f}: sens={sens:.4f}, spec={spec:.4f}"
+			print(row_str)
+			f.write(row_str + "\n")
 
 	precision_recall_curve(targets, preds)
 	plt.savefig(os.path.join(folder_path, "precision_recall.png"))
@@ -161,13 +168,30 @@ def sensitivity_specificity_curve(targets, preds):
 	for t in thresholds:
 		p = preds > t
 		sens, spec = sensitivity_specificity(targets, p)
-		points.append((sens, spec))
+		points.append((t, sens, spec))
+
+	sens_spec_list_a = []
+	sens_spec_list_b = []
+
+	prev_sens = -1
+	for t, sens, spec in reversed(points):
+		if sens != prev_sens:
+			prev_sens = sens
+			sens_spec_list_a.append((t, sens, spec))
+	prev_spec = -1
+	for t, sens, spec in reversed(sens_spec_list_a):
+		if spec != prev_spec:
+			prev_spec = spec
+			sens_spec_list_b.append((t, sens, spec))
+	sens_spec_list = sens_spec_list_b
 
 	points = np.array(points)
-	plt.plot(points[:,0], points[:,1])
+	plt.plot(points[:,1], points[:,2])
 	plt.title("Sensitivity vs Specificity")
 	plt.xlabel("sensitivity")
 	plt.ylabel("specificity")
+
+	return sens_spec_list
 
 def precision_recall_curve(targets, preds):
 	prec, rec, _ = metrics.precision_recall_curve(targets, preds)
@@ -183,5 +207,46 @@ def roc_curve(targets, preds):
 	plt.plot(fpr, tpr)
 	plt.title("ROC Curve")
 
+def confusion(targets, preds, folder_path):
+
+	cfm = metrics.confusion_matrix(targets, preds, labels=[0,1])
+	tn, fp, fn, tp = cfm.ravel()
+
+	with open(os.path.join(folder_path, "cfm.txt"), "w") as f:
+		f.write(f"tp: {tp}\n")
+		f.write(f"fp: {fp}\n")
+		f.write(f"fn: {fn}\n")
+		f.write(f"tn: {tn}\n")
+
+	plt.figure()
+
+	cfm_norm = cfm.astype(np.float32) / cfm.sum(axis=1)[:, np.newaxis]
+	plt.imshow(cfm_norm, interpolation='nearest', cmap=plt.cm.Blues)
+
+	plt.title("Confusion Matrix")
+	plt.colorbar()
+	plt.xticks(np.arange(2), range(2), rotation=45)
+	plt.yticks(np.arange(2), range(2))
+
+	thresh = cfm_norm.max() / 2.
+	for i, j in itertools.product(range(cfm.shape[0]), range(cfm.shape[1])):
+	    plt.text(j, i, cfm[i,j], size="x-small", horizontalalignment="center", color=("white" if cfm_norm[i,j]>thresh else "black"))
+
+	plt.ylabel('True label')
+	plt.xlabel('Predicted label')
+	plt.grid(b=None)
+
+	fn = os.path.join(folder_path, "cfm.png")
+	plt.savefig(fn, dpi=100)
+
+	plt.clf()
+	plt.close()
+
 if __name__ == "__main__":
-	main()
+	parser = argparse.ArgumentParser(description="Test for Retina Project")
+	parser.add_argument("folder_name", type=str,   help="Name of save folder")
+	parser.add_argument("save_id",     type=str,   help="Name of save epoch")
+	parser.add_argument("--split",     type=str,   required=False, default="test", help="Dataset partition")
+	parser.add_argument("--thresh",    type=float, required=False, default=0.5, help="Prediction threshold")
+	args = parser.parse_args()
+	main(args)
