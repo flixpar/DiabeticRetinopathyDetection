@@ -105,6 +105,17 @@ def evaluate(model, loader, folder_path, cfg):
 
 	auc_score = metrics.roc_auc_score(targets, preds)
 
+	print("Sensitivity vs Specificity")
+	sens_spec_list, opt_threshold = sensitivity_specificity_points(targets, preds)
+	with open(os.path.join(folder_path, "sensitivity_specificity.txt"), "w") as f:
+		for t, sens, spec in sens_spec_list:
+			row_str = f"{t:.3f}: sens={sens:.4f}, spec={spec:.4f}"
+			print(row_str)
+			f.write(row_str + "\n")
+
+	if threshold == -1.0:
+		threshold = opt_threshold
+
 	preds = preds > threshold
 	preds = preds.astype(np.int)
 
@@ -121,6 +132,7 @@ def evaluate(model, loader, folder_path, cfg):
 	print(f"AUC:         {auc_score:.4f}")
 	print(f"Sensitivity: {sensitivity:.4f}")
 	print(f"Specificity: {specificity:.4f}")
+	print(f"Threshold:   {threshold:.4f}")
 
 	with open(os.path.join(test_folder_path, "results.txt"), "w") as f:
 		f.write("Test Results\n")
@@ -129,26 +141,20 @@ def evaluate(model, loader, folder_path, cfg):
 		f.write(f"AUC:         {auc_score:.4f}\n")
 		f.write(f"Sensitivity: {sensitivity:.4f}\n")
 		f.write(f"Specificity: {specificity:.4f}\n")
+		f.write(f"Threshold:   {threshold:.4f}\n")
 
 	with open(os.path.join(test_folder_path, "cfg.txt"), "w") as f:
 		f.write(f"folder:    {cfg.folder_name}\n")
 		f.write(f"epoch:     {cfg.save_id}\n")
 		f.write(f"dataset:   {cfg.split}\n")
-		f.write(f"threshold: {cfg.thresh}\n")
+		f.write(f"threshold: {threshold}\n")
 
 def create_plots(targets, preds, folder_path):
 
-	sens_spec_list = sensitivity_specificity_curve(targets, preds)
+	sensitivity_specificity_curve(targets, preds)
 	plt.savefig(os.path.join(folder_path, "sensitivity_specificity.png"))
 	plt.clf()
 	plt.close()
-
-	print("Sensitivity vs Specificity")
-	with open(os.path.join(folder_path, "sensitivity_specificity.txt"), "w") as f:
-		for t, sens, spec in sens_spec_list:
-			row_str = f"{t:.3f}: sens={sens:.4f}, spec={spec:.4f}"
-			print(row_str)
-			f.write(row_str + "\n")
 
 	precision_recall_curve(targets, preds)
 	plt.savefig(os.path.join(folder_path, "precision_recall.png"))
@@ -161,6 +167,22 @@ def create_plots(targets, preds, folder_path):
 	plt.close()
 
 def sensitivity_specificity_curve(targets, preds):
+
+	thresholds = np.linspace(0.0, 1.0, 500)
+	points = []
+
+	for t in thresholds:
+		p = preds > t
+		sens, spec = sensitivity_specificity(targets, p)
+		points.append((t, sens, spec))
+
+	points = np.array(points)
+	plt.plot(points[:,1], points[:,2])
+	plt.title("Sensitivity vs Specificity")
+	plt.xlabel("sensitivity")
+	plt.ylabel("specificity")
+
+def sensitivity_specificity_points(targets, preds):
 
 	thresholds = np.linspace(0.0, 1.0, 500)
 	points = []
@@ -185,13 +207,12 @@ def sensitivity_specificity_curve(targets, preds):
 			sens_spec_list_b.append((t, sens, spec))
 	sens_spec_list = sens_spec_list_b
 
-	points = np.array(points)
-	plt.plot(points[:,1], points[:,2])
-	plt.title("Sensitivity vs Specificity")
-	plt.xlabel("sensitivity")
-	plt.ylabel("specificity")
+	points = np.array(sens_spec_list)
+	scores = 2*points[:,1] + points[:,2]
+	opt = np.argmax(scores)
+	opt_threshold = points[opt, 0]
 
-	return sens_spec_list
+	return sens_spec_list, opt_threshold
 
 def precision_recall_curve(targets, preds):
 	prec, rec, _ = metrics.precision_recall_curve(targets, preds)
@@ -247,6 +268,6 @@ if __name__ == "__main__":
 	parser.add_argument("folder_name", type=str,   help="Name of save folder")
 	parser.add_argument("save_id",     type=str,   help="Name of save epoch")
 	parser.add_argument("--split",     type=str,   required=False, default="test", help="Dataset partition")
-	parser.add_argument("--thresh",    type=float, required=False, default=0.5, help="Prediction threshold")
+	parser.add_argument("--thresh",    type=float, required=False, default=-1.0, help="Prediction threshold")
 	args = parser.parse_args()
 	main(args)
