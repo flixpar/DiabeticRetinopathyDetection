@@ -39,6 +39,14 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 			else:                  self.data = pd.read_csv(os.path.join(args.datapath, "test_ann_nolaser.csv")).values
 		elif self.split == "new":
 			self.data = pd.read_csv(os.path.join(args.datapath, "new_ann.csv")).values
+		elif self.split == "testnew":
+			if args.include_laser: 
+				d1 = pd.read_csv(os.path.join(args.datapath, "test_ann.csv"))
+				d2 = pd.read_csv(os.path.join(args.datapath, "new_ann.csv"))
+			else:
+				d1 = pd.read_csv(os.path.join(args.datapath, "test_ann_nolaser.csv"))
+				d2 = pd.read_csv(os.path.join(args.datapath, "new_ann.csv"))
+			self.data = pd.concat([d1, d2]).values
 		elif self.split == "trainval":
 			if args.include_laser: 
 				d1 = pd.read_csv(os.path.join(args.datapath, "train_ann.csv"))
@@ -47,6 +55,18 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 				d1 = pd.read_csv(os.path.join(args.datapath, "train_ann_nolaser.csv"))
 				d2 = pd.read_csv(os.path.join(args.datapath, "val_ann_nolaser.csv"))
 			self.data = pd.concat([d1, d2]).values
+		elif self.split == "all":
+			if args.include_laser: 
+				d1 = pd.read_csv(os.path.join(args.datapath, "train_ann.csv"))
+				d2 = pd.read_csv(os.path.join(args.datapath, "val_ann.csv"))
+				d3 = pd.read_csv(os.path.join(args.datapath, "test_ann.csv"))
+				d4 = pd.read_csv(os.path.join(args.datapath, "new_ann.csv"))
+			else:
+				d1 = pd.read_csv(os.path.join(args.datapath, "train_ann_nolaser.csv"))
+				d2 = pd.read_csv(os.path.join(args.datapath, "val_ann_nolaser.csv"))
+				d3 = pd.read_csv(os.path.join(args.datapath, "test_ann_nolaser.csv"))
+				d4 = pd.read_csv(os.path.join(args.datapath, "new_ann.csv"))
+			self.data = pd.concat([d1, d2, d3, d4]).values
 		else:
 			raise ValueError("Invalid dataset split.")
 
