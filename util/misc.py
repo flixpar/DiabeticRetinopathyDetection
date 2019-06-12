@@ -9,7 +9,7 @@ from models.classifier import Classifier
 from models.loss import FocalLoss, FBetaLoss
 
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn import metrics
 from collections import OrderedDict
 import os
 
@@ -115,9 +115,7 @@ class ConstantLR(torch.optim.lr_scheduler._LRScheduler):
 
 def sensitivity_specificity(y_true, y_pred):
 
-	cfm = confusion_matrix(y_true, y_pred, labels=[0,1])
-
-	tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+	tn, fp, fn, tp = metrics.confusion_matrix(y_true, y_pred, labels=[0,1]).ravel()
 
 	# Sensitivity, hit rate, recall, or true positive rate
 	tpr = tp/(tp+fn)
@@ -144,3 +142,7 @@ def sensitivity_specificity(y_true, y_pred):
 	acc = (tp+tn)/(tp+fp+fn+tn)
 
 	return tpr, tnr
+
+def confusion_matrix(y_true, y_pred):
+	tn, fp, fn, tp = metrics.confusion_matrix(y_true, y_pred, labels=[0,1]).ravel()
+	return tn, fp, fn, tp

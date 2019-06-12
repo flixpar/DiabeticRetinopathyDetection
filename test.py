@@ -12,6 +12,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from sklearn import metrics
+from statsmodels.stats.proportion import proportion_confint
 
 from loaders.loader import RetinaImageDataset
 from models.classifier import Classifier
@@ -110,7 +111,7 @@ def evaluate(model, loader, folder_path, cfg):
 
 	print("Sensitivity vs Specificity")
 	sens_spec_list, opt_threshold = sensitivity_specificity_points(targets, preds)
-	with open(os.path.join(folder_path, "sensitivity_specificity.txt"), "w") as f:
+	with open(os.path.join(test_folder_path, "sensitivity_specificity.txt"), "w") as f:
 		for t, sens, spec in sens_spec_list:
 			row_str = f"{t:.3f}: sens={sens:.4f}, spec={spec:.4f}"
 			print(row_str)
@@ -127,23 +128,25 @@ def evaluate(model, loader, folder_path, cfg):
 
 	sensitivity, specificity = sensitivity_specificity(targets, preds)
 
+	sens_ci, spec_ci, acc_ci = confidence_intervals(targets, preds)
+
 	confusion(targets, preds, test_folder_path)
 
 	print("Test Results")
-	print(f"Accuracy:    {acc:.4f}")
+	print(f"Accuracy:    {acc:.4f} ({acc_ci[0]:.4f}, {acc_ci[1]:.4f})")
 	print(f"F1:          {f1:.4f}")
 	print(f"AUC:         {auc_score:.4f}")
-	print(f"Sensitivity: {sensitivity:.4f}")
-	print(f"Specificity: {specificity:.4f}")
+	print(f"Sensitivity: {sensitivity:.4f} ({sens_ci[0]:.4f}, {sens_ci[1]:.4f})")
+	print(f"Specificity: {specificity:.4f} ({spec_ci[0]:.4f}, {spec_ci[1]:.4f})")
 	print(f"Threshold:   {threshold:.4f}")
 
 	with open(os.path.join(test_folder_path, "results.txt"), "w") as f:
 		f.write("Test Results\n")
-		f.write(f"Accuracy:    {acc:.4f}\n")
+		f.write(f"Accuracy:    {acc:.4f} ({acc_ci[0]:.4f}, {acc_ci[1]:.4f})\n")
 		f.write(f"F1:          {f1:.4f}\n")
 		f.write(f"AUC:         {auc_score:.4f}\n")
-		f.write(f"Sensitivity: {sensitivity:.4f}\n")
-		f.write(f"Specificity: {specificity:.4f}\n")
+		f.write(f"Sensitivity: {sensitivity:.4f} ({sens_ci[0]:.4f}, {sens_ci[1]:.4f})\n")
+		f.write(f"Specificity: {specificity:.4f} ({spec_ci[0]:.4f}, {spec_ci[1]:.4f})\n")
 		f.write(f"Threshold:   {threshold:.4f}\n")
 
 	with open(os.path.join(test_folder_path, "cfg.txt"), "w") as f:
@@ -211,7 +214,7 @@ def sensitivity_specificity_points(targets, preds):
 	sens_spec_list = sens_spec_list_b
 
 	points = np.array(sens_spec_list)
-	scores = 2*points[:,1] + points[:,2]
+	scores = 3*points[:,1] + points[:,2]
 	opt = np.argmax(scores)
 	opt_threshold = points[opt, 0]
 
@@ -261,10 +264,18 @@ def confusion(targets, preds, folder_path):
 	plt.grid(b=None)
 
 	fn = os.path.join(folder_path, "cfm.png")
-	plt.savefig(fn, dpi=100)
+	plt.savefig(fn, dpi=300)
 
 	plt.clf()
 	plt.close()
+
+def confidence_intervals(targets, preds):
+	cfm = metrics.confusion_matrix(targets, preds, labels=[0,1])
+	tn, fp, fn, tp = cfm.ravel()
+	sens_ci = proportion_confint(tp, tp+fn, alpha=0.05, method="beta")
+	spec_ci = proportion_confint(tn, fp+tn, alpha=0.05, method="beta")
+	acc_ci  = proportion_confint(tp+tn, tp+tn+fp+fn, alpha=0.05, method="beta")
+	return sens_ci, spec_ci, acc_ci
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Test for Retina Project")

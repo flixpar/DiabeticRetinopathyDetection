@@ -10,3 +10,4 @@ sklearn
 pandas
 matplotlib
 seaborn
+statsmodels
