@@ -37,6 +37,8 @@ class RetinaImageDataset(torch.utils.data.Dataset):
 		elif self.split == "test":
 			if args.include_laser: self.data = pd.read_csv(os.path.join(args.datapath, "test_ann.csv")).values
 			else:                  self.data = pd.read_csv(os.path.join(args.datapath, "test_ann_nolaser.csv")).values
+		elif self.split == "new":
+			self.data = pd.read_csv(os.path.join(args.datapath, "new_ann.csv")).values
 		elif self.split == "trainval":
 			if args.include_laser: 
 				d1 = pd.read_csv(os.path.join(args.datapath, "train_ann.csv"))
