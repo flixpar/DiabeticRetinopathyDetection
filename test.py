@@ -106,9 +106,12 @@ def evaluate(model, loader, folder_path, save_id):
 	targets = np.array(targets).squeeze()
 	preds = np.array(preds).squeeze()
 
-	test_folder_path = os.path.join(folder_path, f"test_{save_id}")
+	dt = datetime.datetime.now().strftime("%m%d_%H%M")
+	test_folder_path = os.path.join(folder_path, f"test_{save_id}_{dt}")
 	if not os.path.isdir(test_folder_path): os.makedirs(test_folder_path)
 	create_plots(targets, preds, test_folder_path)
+
+	auc_score = metrics.roc_auc_score(targets, preds)
 
 	preds = preds > threshold
 	preds = preds.astype(np.int)
@@ -121,6 +124,7 @@ def evaluate(model, loader, folder_path, save_id):
 	print("Test Results")
 	print(f"Accuracy:    {acc:.4f}")
 	print(f"F1:          {f1:.4f}")
+	print(f"AUC:         {auc_score:.4f}")
 	print(f"Sensitivity: {sensitivity:.4f}")
 	print(f"Specificity: {specificity:.4f}")
 
@@ -128,6 +132,7 @@ def evaluate(model, loader, folder_path, save_id):
 		f.write("Test Results\n")
 		f.write(f"Accuracy:    {acc:.4f}\n")
 		f.write(f"F1:          {f1:.4f}\n")
+		f.write(f"AUC:         {auc_score:.4f}\n")
 		f.write(f"Sensitivity: {sensitivity:.4f}\n")
 		f.write(f"Specificity: {specificity:.4f}\n")
 
