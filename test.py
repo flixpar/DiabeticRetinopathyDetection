@@ -54,10 +54,10 @@ def main():
 
 	model = get_model(args)
 	state_dict = torch.load(save_path)
-	if "module." in list(state_dict.keys())[0]:
+	if "module." == list(state_dict.keys())[0][:7]:
 		temp_state = OrderedDict()
 		for k, v in state_dict.items():
-			temp_state[k.split("module.")[-1]] = v
+			temp_state[k.replace("module.", "", 1)] = v
 		state_dict = temp_state
 	model.load_state_dict(state_dict)
 	model.cuda()
