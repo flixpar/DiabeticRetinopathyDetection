@@ -60,7 +60,7 @@ def main():
 	optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_lr, weight_decay=args.weight_decay)
 	scheduler = get_scheduler(args, optimizer)
 
-	logger = Logger(args=args)
+	logger = Logger(args=args, enabled=args.logging_enabled)
 	max_score = 0
 
 	for epoch in range(1, args.epochs+1):

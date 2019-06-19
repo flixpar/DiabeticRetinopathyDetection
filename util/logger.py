@@ -18,7 +18,9 @@ sns.set(style="darkgrid")
 
 class Logger:
 
-	def __init__(self, path=None, args=None):
+	def __init__(self, path=None, args=None, enabled=True):
+		self.logging = enabled
+		if not self.logging: return
 
 		if path is not None:
 			if not os.path.isdir(path):
@@ -41,6 +43,7 @@ class Logger:
 			shutil.copy2("args.py", self.path)
 
 	def save_model(self, model, epoch):
+		if not self.logging: return
 		if isinstance(epoch, int):
 			fn = os.path.join(self.path, f"save_{epoch:03d}.pth")
 		else:
@@ -53,13 +56,16 @@ class Logger:
 		self.log(*x)
 
 	def log(self, *x):
+		if not self.logging: return
 		with open(self.main_log_fn, "a") as f:
 			print(*x, file=f, flush=True)
 
 	def log_loss(self, l):
+		if not self.logging: return
 		self.losses.append(l)
 
 	def log_eval(self, data, splitname):
+		if not self.logging: return
 		if splitname == "train":
 			self.train_scores.append(data)
 		elif splitname == "val":
@@ -68,11 +74,13 @@ class Logger:
 			raise ValueError("Invalid splitname for logger.")
 
 	def run_test(self, epoch):
+		if not self.logging: return
 		cmd = ["python3", "test.py", self.dt, epoch]
 		self.print(" ".join(cmd))
 		subprocess.run(cmd, shell=False)
 
 	def save(self):
+		if not self.logging: return
 
 		with open(os.path.join(self.path, "loss.csv"), "w") as f:
 			csvwriter = csv.DictWriter(f, ["it", "loss"])
