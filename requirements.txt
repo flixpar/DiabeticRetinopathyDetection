@@ -11,3 +11,4 @@ pandas
 matplotlib
 seaborn
 statsmodels
+matplotlib2tikz

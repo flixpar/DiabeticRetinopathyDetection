@@ -22,8 +22,8 @@ from util.misc import get_model, sensitivity_specificity, confusion_matrix
 import matplotlib
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set(style="darkgrid")
+plt.style.use("seaborn-paper") # alt: seaborn-darkgrid
+import matplotlib2tikz
 
 import warnings
 warnings.simplefilter("ignore")
@@ -49,7 +49,7 @@ def main(cfg):
 	args = args_module.Args()
 
 	test_dataset = RetinaImageDataset(split=cfg.split, args=args, test_transforms=args.test_augmentation, debug=False)
-	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size*2, num_workers=args.workers, pin_memory=True)
+	test_loader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size//2, num_workers=args.workers, pin_memory=True)
 
 	model = get_model(args)
 	state_dict = torch.load(save_path)
@@ -110,12 +110,15 @@ def evaluate(model, loader, folder_path, cfg):
 	auc_score = metrics.roc_auc_score(targets, preds)
 
 	print("Sensitivity vs Specificity")
-	sens_spec_list, opt_threshold = sensitivity_specificity_points(targets, preds)
+	sens_spec_list, sens_spec_list_full, opt_threshold = sensitivity_specificity_points(targets, preds)
 	with open(os.path.join(test_folder_path, "sensitivity_specificity.txt"), "w") as f:
 		for t, sens, spec in sens_spec_list:
 			row_str = f"{t:.3f}: sens={sens:.4f}, spec={spec:.4f}"
 			print(row_str)
 			f.write(row_str + "\n")
+	with open(os.path.join(test_folder_path, "sensitivity_specificity_full.txt"), "w") as f:
+		for t, sens, spec in sens_spec_list_full:
+			f.write(f"{t:.3f}: sens={sens:.4f}, spec={spec:.4f}\n")
 
 	if threshold == -1.0:
 		threshold = opt_threshold
@@ -159,16 +162,19 @@ def create_plots(targets, preds, folder_path):
 
 	sensitivity_specificity_curve(targets, preds)
 	plt.savefig(os.path.join(folder_path, "sensitivity_specificity.png"))
+	matplotlib2tikz.save(os.path.join(folder_path, "sensitivity_specificity.tex"))
 	plt.clf()
 	plt.close()
 
 	precision_recall_curve(targets, preds)
 	plt.savefig(os.path.join(folder_path, "precision_recall.png"))
+	matplotlib2tikz.save(os.path.join(folder_path, "precision_recall.tex"))
 	plt.clf()
 	plt.close()
 
 	roc_curve(targets, preds)
 	plt.savefig(os.path.join(folder_path, "roc.png"))
+	matplotlib2tikz.save(os.path.join(folder_path, "roc.tex"))
 	plt.clf()
 	plt.close()
 
@@ -213,12 +219,12 @@ def sensitivity_specificity_points(targets, preds):
 			sens_spec_list_b.append((t, sens, spec))
 	sens_spec_list = sens_spec_list_b
 
-	points = np.array(sens_spec_list)
-	scores = 3*points[:,1] + points[:,2]
+	filtered_points = np.array(sens_spec_list)
+	scores = 3*filtered_points[:,1] + filtered_points[:,2]
 	opt = np.argmax(scores)
-	opt_threshold = points[opt, 0]
+	opt_threshold = filtered_points[opt, 0]
 
-	return sens_spec_list, opt_threshold
+	return sens_spec_list, points, opt_threshold
 
 def precision_recall_curve(targets, preds):
 	prec, rec, _ = metrics.precision_recall_curve(targets, preds)
@@ -265,6 +271,7 @@ def confusion(targets, preds, folder_path):
 
 	fn = os.path.join(folder_path, "cfm.png")
 	plt.savefig(fn, dpi=300)
+	matplotlib2tikz.save(os.path.join(folder_path, "cfm.tex"))
 
 	plt.clf()
 	plt.close()
