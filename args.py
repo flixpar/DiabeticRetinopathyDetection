@@ -25,7 +25,7 @@ class Args:
 	device_ids = [0]                # DEFAULT [0,] (list int 0-8)
 	workers = 4                     # DEFAULT 4 (int >=0)
 
-	pretraining = True              # DEFAULT False (bool)
+	pretraining = False             # DEFAULT False (bool)
 	pretrained = False              # DEFAULT False (bool)
 	pretrain_info = None            # DEFAULT None (None | tuple(str, str | int))
 
@@ -44,9 +44,9 @@ class Args:
 	example_weighting = False       # DEFAULT False (bool)
 
 	train_augmentation = tfms.Compose([
+		tfms.GaussNoise(var_limit=(2, 8)),
 		tfms.HorizontalFlip(p=0.5),
-		tfms.VerticalFlip(p=0.5),
-		tfms.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=25),
+		tfms.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=15),
 	])
 
 	##############################
@@ -54,8 +54,7 @@ class Args:
 	##############################
 
 	test_augmentation = [
-		tfms.HorizontalFlip(p=1.0),
-		tfms.VerticalFlip(p=1.0),
+		tfms.HorizontalFlip(always_apply=True),
 	]
 
 	##############################
