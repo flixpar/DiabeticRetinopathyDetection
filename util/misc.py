@@ -18,7 +18,7 @@ def get_dataset_class(args):
 	else: return RetinaImageDataset
 
 def get_model(args):
-	model = Classifier(args.arch)
+	model = Classifier(arch=args.arch, ckpt=args.checkpoint)
 
 	if args.pretrained:
 

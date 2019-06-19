@@ -11,7 +11,8 @@ class Args:
 	batch_size = 4                  # DEFAULT 4 (int >1)
 	weight_decay = 1e-5             # DEFAULT 1e-5 (float >=0)
 
-	arch = "inceptionv4"            # DEFAULT resnet50 (resnet50 | resnet152 | senet154 | inceptionv4)
+	arch = "inceptionv4"            # DEFAULT inceptionv4 (resnet50 | resnet152 | senet154 | inceptionv4 | ...)
+	checkpoint = False              # DEFUALT False (bool | auto)
 
 	initial_lr = 3e-5               # DEFAULT 3e-5 (float >0)
 	lr_schedule = "poly"            # DEFAULT poly (None | poly | exp | step | multistep | cosine)
