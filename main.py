@@ -70,8 +70,11 @@ def main():
 		evaluate(model, train_static_loader, loss_func, logger, epoch, "train")
 		score = evaluate(model, val_loader, loss_func, logger, epoch, "val")
 		logger.save()
-		if score > max_score:
+		if args.save_freq == "best" and score > max_score:
 			logger.save_model(model.module, epoch)
+		elif args.save_freq is not None and epoch % args.save_freq == 0:	
+			logger.save_model(model.module, epoch)
+		if score > max_score:
 			max_score = score
 
 	logger.save()

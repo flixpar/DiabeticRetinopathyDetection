@@ -30,6 +30,7 @@ class Args:
 	pretrain_info = None            # DEFAULT None (None | tuple(str, str | int))
 
 	log_freq = 5                    # DEFAULT 5 (int >0)
+	save_freq = 10                  # DEFAULT best (best | None | int>0)
 	n_val_samples = None            # DEFAULT None (int >0 | None)
 	n_train_eval_samples = 64       # DEFAULT 64 (int >0 | None)
 	debug = False                   # DEFAULT False (bool)
