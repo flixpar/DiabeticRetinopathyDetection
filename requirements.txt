@@ -12,3 +12,5 @@ matplotlib
 seaborn
 statsmodels
 matplotlib2tikz
+pytorchcv
+efficientnet_pytorch
