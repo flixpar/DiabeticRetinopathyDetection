@@ -9,34 +9,36 @@ from torch.utils.checkpoint import checkpoint_sequential, checkpoint
 
 class Classifier(nn.Module):
 
-	def __init__(self, arch="inceptionv4", pool_type="avg", ckpt=False):
+	def __init__(self, arch="inceptionv4", pool_type="avg", norm_type="batchnorm", ckpt=False):
 		super(Classifier, self).__init__()
 
 		model_configs = {
-			"resnet50":            {"fc_size": 2048, "lib": "tv",   "ckpt": False, "pretrained": True},
-			"resnet152":           {"fc_size": 2048, "lib": "tv",   "ckpt": False, "pretrained": True},
-			"inceptionv3":         {"fc_size": 2048, "lib": "tv",   "ckpt": False, "pretrained": True},
-			"inceptionv4":         {"fc_size": 1536, "lib": "ptm",  "ckpt": False, "pretrained": True},
-			"senet154":            {"fc_size": 2048, "lib": "ptm",  "ckpt": True , "pretrained": True},
-			"densenet169":         {"fc_size": 2048, "lib": "tv",   "ckpt": False, "pretrained": True},
-			"densenet201":         {"fc_size": 2048, "lib": "tv",   "ckpt": False, "pretrained": True},
-			"xception":            {"fc_size": 2048, "lib": "ptm",  "ckpt": True , "pretrained": True},
-			"se_resnet50":         {"fc_size": 2048, "lib": "ptm",  "ckpt": False, "pretrained": True},
-			"se_resnet152":        {"fc_size": 2048, "lib": "ptm",  "ckpt": False, "pretrained": True},
-			"se_resnext101_32x4d": {"fc_size": 2048, "lib": "ptm",  "ckpt": False, "pretrained": True},
-			"resnext101_62x4d":    {"fc_size": 2048, "lib": "ptm",  "ckpt": False, "pretrained": True},
-			"efficientnet-b3":     {"fc_size": 2048, "lib": "eff",  "ckpt": False, "pretrained": True},
-			"efficientnet-b4":     {"fc_size": 2048, "lib": "eff",  "ckpt": False, "pretrained": True},
-			"efficientnet-b5":     {"fc_size": 2048, "lib": "eff",  "ckpt": False, "pretrained": True},
-			"efficientnet-b6":     {"fc_size": 2048, "lib": "eff",  "ckpt": False, "pretrained": False},
-			"efficientnet-b7":     {"fc_size": 2048, "lib": "eff",  "ckpt": False, "pretrained": False},
-			"cbam_resnet50":       {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "pretrained": True},
-			"cbam_resnet152":      {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "pretrained": False},
-			"cbam_resnet50":       {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "pretrained": True},
-			"cbam_resnet152":      {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "pretrained": False},
-			"resattnet56":         {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "pretrained": False},
-			"resattnet92":         {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "pretrained": False},
-			"resattnet164":        {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "pretrained": False},
+			"resnet50":            {"fc_size": 2048, "lib": "tv",   "ckpt": False, "seq": True,  "pretrained": True},
+			"resnet152":           {"fc_size": 2048, "lib": "tv",   "ckpt": False, "seq": True,  "pretrained": True},
+			"inception_v3":        {"fc_size": 2048, "lib": "tv",   "ckpt": False, "seq": True,  "pretrained": True},
+			"inceptionv4":         {"fc_size": 1536, "lib": "ptm",  "ckpt": False, "seq": True,  "pretrained": True},
+			"senet154":            {"fc_size": 2048, "lib": "ptm",  "ckpt": True,  "seq": True,  "pretrained": True},
+			"densenet169":         {"fc_size": 1664, "lib": "tv",   "ckpt": True,  "seq": True,  "pretrained": True},
+			"densenet161":         {"fc_size": 2208, "lib": "tv",   "ckpt": True,  "seq": True,  "pretrained": True},
+			"densenet201":         {"fc_size": 1920, "lib": "tv",   "ckpt": True,  "seq": True,  "pretrained": True},
+			"xception":            {"fc_size": 2048, "lib": "ptm",  "ckpt": True,  "seq": True,  "pretrained": True},
+			"se_resnet50":         {"fc_size": 2048, "lib": "ptm",  "ckpt": False, "seq": False, "pretrained": True},
+			"se_resnet152":        {"fc_size": 2048, "lib": "ptm",  "ckpt": True,  "seq": False, "pretrained": True},
+			"se_resnext101_32x4d": {"fc_size": 2048, "lib": "ptm",  "ckpt": True,  "seq": False, "pretrained": True},
+			"resnext101_64x4d":    {"fc_size": 2048, "lib": "ptm",  "ckpt": True,  "seq": False, "pretrained": True},
+			"efficientnet-b0":     {"fc_size": 1280, "lib": "eff",  "ckpt": False, "seq": False, "pretrained": True},
+			"efficientnet-b3":     {"fc_size": 1536, "lib": "eff",  "ckpt": True,  "seq": False, "pretrained": True},
+			"efficientnet-b4":     {"fc_size": 1792, "lib": "eff",  "ckpt": True,  "seq": False, "pretrained": True},
+			"efficientnet-b5":     {"fc_size": 2048, "lib": "eff",  "ckpt": True,  "seq": False, "pretrained": True},
+			"efficientnet-b6":     {"fc_size": 2304, "lib": "eff",  "ckpt": True,  "seq": False, "pretrained": False},
+			"efficientnet-b7":     {"fc_size": 2560, "lib": "eff",  "ckpt": True,  "seq": False, "pretrained": False},
+			"bam_resnet50":        {"fc_size": 2048, "lib": "ptcv", "ckpt": False, "seq": True,  "pretrained": True},
+			"bam_resnet152":       {"fc_size": 2048, "lib": "ptcv", "ckpt": True,  "seq": True,  "pretrained": False},
+			"cbam_resnet50":       {"fc_size": 2048, "lib": "ptcv", "ckpt": True,  "seq": True,  "pretrained": True},
+			"cbam_resnet152":      {"fc_size": 2048, "lib": "ptcv", "ckpt": True,  "seq": True,  "pretrained": False},
+			"resattnet56":         {"fc_size": 2048, "lib": "ptcv", "ckpt": True,  "seq": True,  "pretrained": False},
+			"resattnet92":         {"fc_size": 2048, "lib": "ptcv", "ckpt": True,  "seq": True,  "pretrained": False},
+			"resattnet164":        {"fc_size": 2048, "lib": "ptcv", "ckpt": True,  "seq": True,  "pretrained": False},
 		}
 
 		valid_models = list(model_configs.keys())
@@ -45,10 +47,11 @@ class Classifier(nn.Module):
 
 		if ckpt == "auto": self.ckpt = model_configs[arch]["ckpt"]
 		else:              self.ckpt = ckpt
+		self.sequential = model_configs[arch]["seq"]
 
 		if model_configs[arch]["lib"] == "tv":
 			self.net = torchvision.models.__dict__[arch](pretrained=True)
-		if model_configs[arch]["lib"] == "ptm":
+		elif model_configs[arch]["lib"] == "ptm":
 			self.net = pretrainedmodels.__dict__[arch](num_classes=1000, pretrained="imagenet")
 		elif model_configs[arch]["lib"] == "ptcv":
 			self.net = ptcv_get_model(arch, pretrained=model_configs[arch]["pretrained"])
@@ -58,14 +61,21 @@ class Classifier(nn.Module):
 		else:
 			raise ValueError("Invalid classifier library.")
 
+		if pool_type == "avg":   self.pool = nn.AdaptiveAvgPool2d(1)
+		elif pool_type == "max": self.pool = nn.AdaptiveMaxPool2d(1)
+		else: raise ValueError("Invalid pooling method.")
+
 		self.features = self.get_feature_extractor(arch, self.net)
-		self.pool = nn.AdaptiveAvgPool2d(1) if pool_type == "avg" else nn.AdaptiveMaxPool2d(1)
 		self.classifier = nn.Linear(model_configs[arch]["fc_size"], 1)
+
+		if norm_type != "batchnorm": self.convert_norm(norm_type)
 
 	def forward(self, x):
 
 		if not self.ckpt: x = self.features(x)
-		else:             x = checkpoint_sequential(self.features, 3, x)
+		else:
+			if self.sequential: x = checkpoint_sequential(self.features, 5, x)
+			else:               x = checkpoint(self.features, x)
 
 		x = self.pool(x)
 		x = x.view(x.size(0), -1)
@@ -120,7 +130,7 @@ class Classifier(nn.Module):
 				return x
 			return features
 		elif "resatt" in arch or "bam" in arch:
-			net.features["final_pool"] = nn.Identity()
+			net.features._modules["final_pool"] = nn.Identity()
 			return net.features
 		elif arch in ["resnet50", "resnet152"]:
 			return nn.Sequential(
@@ -133,7 +143,7 @@ class Classifier(nn.Module):
 				net.layer3,
 				net.layer4,
 			)
-		elif arch == "inceptionv3":
+		elif arch == "inception_v3":
 			return nn.Sequential(
 				net.Conv2d_1a_3x3,
 				net.Conv2d_2a_3x3,
@@ -159,3 +169,45 @@ class Classifier(nn.Module):
 			return net.features
 		else:
 			return net.features
+
+	def convert_norm(self, norm_type):
+		def to_instancenorm(module):
+			mod = nn.InstanceNorm2d(module.num_features, module.eps, module.momentum, module.affine, module.track_running_stats)
+			mod.running_mean = module.running_mean
+			mod.running_var = module.running_var
+			if module.affine:
+				mod.weight.data = module.weight.data.clone().detach()
+				mod.bias.data = module.bias.data.clone().detach()
+			return mod
+		def to_groupnorm(module):
+			groups = min(32, module.num_features // 2)
+			mod = nn.GroupNorm(groups, module.num_features, module.eps, module.affine)
+			mod.running_mean = module.running_mean
+			mod.running_var = module.running_var
+			if module.affine:
+				mod.weight.data = module.weight.data.clone().detach()
+				mod.bias.data = module.bias.data.clone().detach()
+			return mod
+		def to_layernorm(module):
+			groups = module.num_features
+			mod = nn.GroupNorm(groups, module.num_features, module.eps, module.affine)
+			mod.running_mean = module.running_mean
+			mod.running_var = module.running_var
+			if module.affine:
+				mod.weight.data = module.weight.data.clone().detach()
+				mod.bias.data = module.bias.data.clone().detach()
+			return mod
+		if norm_type == "instancenorm": norm_convert = to_instancenorm
+		elif norm_type == "groupnorm":  norm_convert = to_groupnorm
+		elif norm_type == "layernorm":  norm_convert = to_layernorm
+		else: raise ValueError("Invalid norm type.")
+		def convert_module(module):
+			mod = module
+			if isinstance(module, nn.BatchNorm2d):
+				mod = norm_convert(module)
+			for name, child in module.named_children():
+				mod.add_module(name, convert_module(child))
+			return mod
+		convert_module(self)
+		print(self)
+		# exit()

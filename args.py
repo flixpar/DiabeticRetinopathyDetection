@@ -12,9 +12,11 @@ class Args:
 	weight_decay = 1e-5             # DEFAULT 1e-5 (float >=0)
 
 	arch = "inceptionv4"            # DEFAULT inceptionv4 (resnet50 | resnet152 | senet154 | inceptionv4 | ...)
-	checkpoint = False              # DEFUALT False (bool | auto)
+	checkpoint = "auto"             # DEFUALT auto (bool | auto)
+	pool_type = "avg"               # DEFAULT avg (avg | max)
+	norm_type = "batchnorm"         # DEFAULT batchnorm (batchnorm | instancenorm | groupnorm | layernorm)
 
-	initial_lr = 3e-5               # DEFAULT 3e-5 (float >0)
+	initial_lr = 5e-5               # DEFAULT 5e-5 (float >0)
 	lr_schedule = "poly"            # DEFAULT poly (None | poly | exp | step | multistep | cosine)
 	lr_schedule_params = {          # DEFAULT {} (dict)
 	}
