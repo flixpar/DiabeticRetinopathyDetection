@@ -8,7 +8,11 @@ from torch import nn
 import torch.nn.functional as F
 
 from util.logger import Logger
-from util.misc import get_dataset_class, get_model, get_loss, get_train_sampler, get_scheduler, sensitivity_specificity
+from util.misc import (
+	get_dataset_class, get_model, get_loss,
+	get_train_sampler, get_scheduler, 
+	sensitivity_specificity, check_memory_use
+)
 
 import warnings
 warnings.simplefilter("ignore")
@@ -55,6 +59,7 @@ def main():
 	if len(args.device_ids) > 1:
 		model = nn.DataParallel(model.cuda(), device_ids=args.device_ids)
 	model.to(primary_device)
+	check_memory_use(args, model, primary_device)
 
 	# training
 	loss_func = get_loss(args).to(primary_device)

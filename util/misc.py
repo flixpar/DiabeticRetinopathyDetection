@@ -39,6 +39,18 @@ def get_model(args):
 
 	return model
 
+def check_memory_use(args, model, device):
+	model.train()
+	test_input = torch.zeros((args.batch_size, 3, args.img_size, args.img_size), dtype=torch.float, device=device)
+	try:
+		z = model(test_input)
+	except RuntimeError as e:
+		if "out of memory" in str(e):
+			torch.cuda.empty_cache()
+			model.ckpt = True
+			model.sequential = False
+	z = model(test_input)
+
 def get_loss(args):
 
 	if args.loss == "bce":

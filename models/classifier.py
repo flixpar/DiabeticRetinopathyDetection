@@ -171,6 +171,7 @@ class Classifier(nn.Module):
 			return net.features
 
 	def convert_norm(self, norm_type):
+
 		def to_instancenorm(module):
 			mod = nn.InstanceNorm2d(module.num_features, module.eps, module.momentum, module.affine, module.track_running_stats)
 			mod.running_mean = module.running_mean
@@ -197,10 +198,12 @@ class Classifier(nn.Module):
 				mod.weight.data = module.weight.data.clone().detach()
 				mod.bias.data = module.bias.data.clone().detach()
 			return mod
+
 		if norm_type == "instancenorm": norm_convert = to_instancenorm
 		elif norm_type == "groupnorm":  norm_convert = to_groupnorm
 		elif norm_type == "layernorm":  norm_convert = to_layernorm
 		else: raise ValueError("Invalid norm type.")
+
 		def convert_module(module):
 			mod = module
 			if isinstance(module, nn.BatchNorm2d):
@@ -208,6 +211,5 @@ class Classifier(nn.Module):
 			for name, child in module.named_children():
 				mod.add_module(name, convert_module(child))
 			return mod
+
 		convert_module(self)
-		print(self)
-		# exit()
