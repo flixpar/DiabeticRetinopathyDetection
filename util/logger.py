@@ -20,7 +20,9 @@ class Logger:
 
 	def __init__(self, path=None, args=None, enabled=True):
 		self.logging = enabled
-		if not self.logging: return
+		if not self.logging:
+			self.losses = []
+			return
 
 		if path is not None:
 			if not os.path.isdir(path):
@@ -61,7 +63,6 @@ class Logger:
 			print(*x, file=f, flush=True)
 
 	def log_loss(self, l):
-		if not self.logging: return
 		self.losses.append(l)
 
 	def log_eval(self, data, splitname):

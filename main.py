@@ -51,8 +51,9 @@ def main():
 		num_workers=args.workers, pin_memory=True)
 
 	# model
-	model = get_model(args).cuda()
-	model = nn.DataParallel(model, device_ids=args.device_ids)
+	model = get_model(args)
+	if len(args.device_ids) > 1:
+		model = nn.DataParallel(model.cuda(), device_ids=args.device_ids)
 	model.to(primary_device)
 
 	# training
@@ -65,7 +66,6 @@ def main():
 
 	for epoch in range(1, args.epochs+1):
 		logger.print(f"Epoch {epoch}")
-		scheduler.step()
 		train(model, train_loader, loss_func, optimizer, logger)
 		evaluate(model, train_static_loader, loss_func, logger, epoch, "train")
 		score = evaluate(model, val_loader, loss_func, logger, epoch, "val")
@@ -76,6 +76,7 @@ def main():
 			logger.save_model(model.module, epoch)
 		if score > max_score:
 			max_score = score
+		scheduler.step()
 
 	logger.save()
 	logger.save_model(model, "final")
