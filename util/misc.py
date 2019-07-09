@@ -3,10 +3,10 @@ from torch import nn
 import torch.optim.lr_scheduler
 from torch.utils.data import WeightedRandomSampler
 
-from loaders.loader import RetinaImageDataset
-from loaders.kaggle_loader import KaggleRetinaDataset
+from loaders.dr_dataset import DRDataset
+from loaders.blindness_dataset import BlindnessDataset
 from models.classifier import Classifier
-from models.loss import FocalLoss, FBetaLoss
+# import models.modules
 
 import numpy as np
 from sklearn import metrics
@@ -14,20 +14,17 @@ from collections import OrderedDict
 import os
 
 def get_dataset_class(args):
-	if args.pretraining: return KaggleRetinaDataset
-	else: return RetinaImageDataset
+	if args.pretraining: return DRDataset
+	else: return BlindnessDataset
 
 def get_model(args):
 	model = Classifier(arch=args.arch, ckpt=args.checkpoint, pool_type=args.pool_type, norm_type=args.norm_type)
 
-	if args.pretrained:
+	if args.pretrained_model is not None:
 
-		if args.pretrain_info is None or len(args.pretrain_info) != 2: raise ValueError("Invalid pretraining info.")
-		save_folder, save_id = args.pretrain_info
-		if isinstance(save_id, int):
-			save_path = os.path.join("./saves", save_folder, f"save_{save_id:03d}.pth")
-		else:
-			save_path = os.path.join("./saves", save_folder, f"save_{save_id}.pth")
+		if len(args.pretrained_model) != 2: raise ValueError("Invalid pretraining info.")
+		save_folder, save_id = args.pretrained_model
+		save_path = os.path.join("./saves", save_folder, f"save_{save_id:03d}.pth")
 
 		state_dict = torch.load(save_path)
 		if "module." in list(state_dict.keys())[0]:
@@ -53,20 +50,16 @@ def check_memory_use(args, model, device):
 
 def get_loss(args):
 
-	if args.loss == "bce":
-		loss_func = nn.BCEWithLogitsLoss()
-	elif args.loss == "focal":
-		if "focal_gamma" in args.loss_params:
-			loss_func = FocalLoss(gamma=args.loss_params["focal_gamma"])
-		else:
-			loss_func = FocalLoss()
-	elif args.loss == "fbeta":
-		if "fbeta" in args.loss_params:
-			loss_func = FBetaLoss(beta=args.loss_params["fbeta"], soft=True)
-		else:
-			loss_func = FBetaLoss(soft=True)
-	elif args.loss == "softmargin":
-		loss_func = nn.SoftMarginLoss()
+	if args.loss == "crossentropy":
+		loss_func = nn.CrossEntropyLoss()
+	elif args.loss == "mse":
+		loss_func = nn.MSELoss()
+	elif args.loss == "l1":
+		loss_func = nn.SmoothL1Loss()
+	elif args.loss == "multimargin":
+		loss_func = nn.MultiMarginLoss()
+	# elif args.loss == "focal":
+	# 	loss_func = models.modules.FocalLoss()
 	else:
 		raise ValueError(f"Invalid loss function specifier: {args.loss}")
 
@@ -124,37 +117,3 @@ class ConstantLR(torch.optim.lr_scheduler._LRScheduler):
 
 	def get_lr(self):
 		return [base_lr for base_lr in self.base_lrs]
-
-def sensitivity_specificity(y_true, y_pred):
-
-	tn, fp, fn, tp = metrics.confusion_matrix(y_true, y_pred, labels=[0,1]).ravel()
-
-	# Sensitivity, hit rate, recall, or true positive rate
-	tpr = tp/(tp+fn)
-
-	# Specificity or true negative rate
-	tnr = tn/(tn+fp)
-
-	# Precision or positive predictive value
-	ppv = tp/(tp+fp)
-
-	# Negative predictive value
-	npv = tn/(tn+fn)
-
-	# Fall out or false positive rate
-	fpr = fp/(fp+tn)
-
-	# False negative rate
-	fnr = fn/(tp+fn)
-
-	# False discovery rate
-	fdr = fp/(tp+fp)
-
-	# Overall accuracy
-	acc = (tp+tn)/(tp+fp+fn+tn)
-
-	return tpr, tnr
-
-def confusion_matrix(y_true, y_pred):
-	tn, fp, fn, tp = metrics.confusion_matrix(y_true, y_pred, labels=[0,1]).ravel()
-	return tn, fp, fn, tp

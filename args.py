@@ -16,12 +16,12 @@ class Args:
 	pool_type = "avg"               # DEFAULT avg (avg | max)
 	norm_type = "batchnorm"         # DEFAULT batchnorm (batchnorm | instancenorm | groupnorm | layernorm)
 
-	initial_lr = 5e-5               # DEFAULT 5e-5 (float >0)
+	initial_lr = 1e-5               # DEFAULT 5e-5 (float >0)
 	lr_schedule = "poly"            # DEFAULT poly (None | poly | exp | step | multistep | cosine)
 	lr_schedule_params = {          # DEFAULT {} (dict)
 	}
 
-	loss = "bce"                    # DEFAULT bce (bce | focal | fbeta | softmargin)
+	loss = "crossentropy"           # DEFAULT crossentropy (crossentropy | mse | l1 | multimargin | focal)
 	loss_params = {
 	}
 
@@ -29,14 +29,13 @@ class Args:
 	workers = 4                     # DEFAULT 4 (int >=0)
 
 	pretraining = False             # DEFAULT False (bool)
-	pretrained = False              # DEFAULT False (bool)
-	pretrain_info = None            # DEFAULT None (None | tuple(str, str | int))
+	pretrained_model = None         # DEFAULT None (None | tuple(str, str | int))
 
 	log_freq = 5                    # DEFAULT 5 (int >0)
 	save_freq = 10                  # DEFAULT best (best | None | int>0)
-	n_val_samples = None            # DEFAULT None (int >0 | None)
-	n_train_eval_samples = 64       # DEFAULT 64 (int >0 | None)
-	debug = False                   # DEFAULT False (bool)
+	n_vval_samples = None           # DEFAULT None (int >0 | None)
+	n_tval_samples = 64             # DEFAULT 64 (int >0 | None)
+	debug = True                   # DEFAULT False (bool)
 	logging_enabled = True          # DEFAULT True (bool)
 
 	train_split = "train"           # DEFAULT train (train | val | trainval)
@@ -44,7 +43,6 @@ class Args:
 
 	img_size = 1024                 # DEFAULT 1024 (None | int 224-4096)
 
-	include_laser = True            # DEFAULT True (bool)
 	example_weighting = False       # DEFAULT False (bool)
 
 	train_augmentation = tfms.Compose([
@@ -65,5 +63,5 @@ class Args:
 	########## Paths #############
 	##############################
 
-	datapath  = "./data/"
-	kaggle_datapath = "/home/felix/data/kaggle/"
+	dr_datapath  = "/home/felix/data/kaggle_dr/"
+	blindness_datapath = "/home/felix/data/kaggle_blindness/"

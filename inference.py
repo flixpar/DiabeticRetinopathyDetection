@@ -11,18 +11,9 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from sklearn import metrics
-
 from loaders.blindness_dataset import BlindnessDataset
 from models.classifier import Classifier
-
 from util.misc import get_model
-
-import matplotlib
-matplotlib.use("agg")
-import matplotlib.pyplot as plt
-plt.style.use("seaborn-paper") # alt: seaborn-darkgrid
-import matplotlib2tikz
 
 import warnings
 warnings.simplefilter("ignore")
@@ -58,68 +49,36 @@ def main(cfg):
 	model.load_state_dict(state_dict)
 	model.to(primary_device)
 
-	print("Test")
-	evaluate(model, test_loader, folder_path, cfg)
+	print("Inference")
+	inference(model, test_loader, folder_path, cfg)
 
-def evaluate(model, loader, folder_path, cfg):
+def inference(model, loader, folder_path, cfg):
 	model.eval()
 
 	preds = []
-	targets = []
-
 	with torch.no_grad():
-		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
+		for i, (images, img_id) in tqdm.tqdm(enumerate(loader), total=len(loader)):
 
 			images = images.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
-			labels = labels.to(primary_device, dtype=torch.long, non_blocking=True).repeat((images.shape[0]))
-
 			outputs = model(images)
 
 			pred = torch.softmax(outputs, dim=-1).mean(dim=0).argmax(dim=-1)
 			pred = pred.cpu().numpy()
-
-			labels = labels[0].cpu().numpy().astype(np.int).squeeze()
-
-			preds.append(pred)
-			targets.append(labels)
-
-	targets = np.array(targets).squeeze()
-	preds = np.array(preds).squeeze()
+			preds.append((img_id[0], pred))
 
 	dt = datetime.datetime.now().strftime("%m%d%H%M")
-	test_folder_path = os.path.join(folder_path, f"test_{dt}")
-	if not os.path.isdir(test_folder_path): os.makedirs(test_folder_path)
+	inference_folder_path = os.path.join(folder_path, f"inference_{dt}")
+	if not os.path.isdir(inference_folder_path): os.makedirs(inference_folder_path)
 
-	acc = metrics.accuracy_score(targets, preds)
-	f1 = metrics.f1_score(targets, preds, average="macro")
-	precision = metrics.precision_score(targets, preds, average="micro")
-	recall = metrics.recall_score(targets, preds, average="micro")
-	kappa = metrics.cohen_kappa_score(targets, preds, weights="quadratic")
-
-	print("Test Results")
-	print(f"Accuracy:    {acc:.4f}")
-	print(f"F1:          {f1:.4f}")
-	print(f"Kappa:       {kappa:.4f}")
-	print(f"Precision:   {precision:.4f}")
-	print(f"Recall:      {recall:.4f}")
-
-	with open(os.path.join(test_folder_path, "results.txt"), "w") as f:
-		f.write("Test Results\n")
-		f.write(f"Accuracy:    {acc:.4f}\n")
-		f.write(f"F1:          {f1:.4f}\n")
-		f.write(f"Kappa:       {kappa:.4f}\n")
-		f.write(f"Precision:   {precision:.4f}\n")
-		f.write(f"Recall:      {recall:.4f}\n")
-
-	with open(os.path.join(test_folder_path, "cfg.txt"), "w") as f:
-		f.write(f"folder:    {cfg.folder_name}\n")
-		f.write(f"epoch:     {cfg.save_id}\n")
-		f.write(f"dataset:   {cfg.split}\n")
+	with open(os.path.join(inference_folder_path, "pred.csv"), "w") as f:
+		f.write("id_code,diagnosis\n")
+		for img_id, pred in preds:
+			f.write(f"{img_id},{pred:d}\n")
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Test for Retina Project")
+	parser = argparse.ArgumentParser(description="Inference for Retina Project")
 	parser.add_argument("folder_name", type=str,   help="Name of save folder")
 	parser.add_argument("save_id",     type=int,   help="Save epoch")
-	parser.add_argument("--split",     type=str,   required=False, default="val", help="Dataset partition")
+	parser.add_argument("--split",     type=str,   required=False, default="test", help="Dataset partition")
 	args = parser.parse_args()
 	main(args)

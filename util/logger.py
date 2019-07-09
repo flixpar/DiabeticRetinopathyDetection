@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import subprocess
 
+from torch.utils.tensorboard import SummaryWriter
+
 import matplotlib
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
@@ -38,18 +40,38 @@ class Logger:
 			if args is not None and args.pretraining: self.path = self.path + "_pretraining"
 			if not os.path.exists(self.path):
 				os.makedirs(self.path)
+			else:
+				raise FileExistsError(f"Save folder already exists: {self.path}")
+			self.epoch = 1
+			self.iterations = 0
+			self.current_split = "train"
 			self.losses = []
-			self.train_scores = []
-			self.eval_scores = []
+			self.tval_scores = []
+			self.vval_scores = []
 			self.main_log_fn = os.path.join(self.path, "log.txt")
 			shutil.copy2("args.py", self.path)
+			self.tensorboard = SummaryWriter(log_dir=os.path.join(self.path, "tensorboard"))
+			self.save_git()
 
-	def save_model(self, model, epoch):
+	def save_git(self):
+
+		git_commit_short = subprocess.run(["git", "rev-parse", "--short", "HEAD"], stdout=subprocess.PIPE)
+		git_commit_long  = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE)
+		git_diff = subprocess.run(["git", "diff"], stdout=subprocess.PIPE)
+
+		git_commit_short = git_commit_short.stdout.decode('UTF-8').strip()
+		git_commit_long  = git_commit_long.stdout.decode('UTF-8').strip()
+		git_diff = git_diff.stdout.decode('UTF-8')
+
+		with open(os.path.join(self.path, "git.txt"), "w") as f:
+			f.write(f"commit: {git_commit_short}\n")
+			f.write(f"commit (full): {git_commit_long}\n")
+			f.write("\n\nDIFF:\n")
+			f.write(git_diff)
+
+	def save_model(self, model):
 		if not self.logging: return
-		if isinstance(epoch, int):
-			fn = os.path.join(self.path, f"save_{epoch:03d}.pth")
-		else:
-			fn = os.path.join(self.path, f"save_{epoch}.pth")
+		fn = os.path.join(self.path, f"save_{self.epoch:03d}.pth")
 		torch.save(model.state_dict(), fn)
 		self.print(f"Saved model to: {fn}\n")
 
@@ -63,22 +85,30 @@ class Logger:
 			print(*x, file=f, flush=True)
 
 	def log_loss(self, l):
-		self.losses.append(l)
+		self.losses.append((self.epoch, self.iterations, l))
+		self.tensorboard.add_scalar("train/loss/", l, global_step=self.iterations)
+		self.iterations += 1
 
-	def log_eval(self, data, splitname):
+	def log_scores(self, s):
 		if not self.logging: return
-		if splitname == "train":
-			self.train_scores.append(data)
-		elif splitname == "val":
-			self.eval_scores.append(data)
+		if self.current_split == "tval":
+			self.tval_scores.append((self.epoch, s))
+			self.tensorboard.add_scalars("train/scores/", s, global_step=self.epoch)
+		elif self.current_split == "vval":
+			self.vval_scores.append((self.epoch, s))
+			self.tensorboard.add_scalars("val/scores/", s, global_step=self.epoch)
 		else:
-			raise ValueError("Invalid splitname for logger.")
+			raise ValueError("Invalid split name for logger.")
 
-	def run_test(self, epoch):
-		if not self.logging: return
-		cmd = ["python3", "test.py", self.dt, epoch]
-		self.print(" ".join(cmd))
-		subprocess.run(cmd, shell=False)
+	def complete_epoch(self):
+		self.save()
+		self.epoch += 1
+
+	def train(self):
+		self.current_split = "train"
+
+	def eval(self, dset="val"):
+		self.current_split = dset
 
 	def save(self):
 		if not self.logging: return
@@ -86,22 +116,26 @@ class Logger:
 		with open(os.path.join(self.path, "loss.csv"), "w") as f:
 			csvwriter = csv.DictWriter(f, ["it", "loss"])
 			csvwriter.writeheader()
-			for it, loss in enumerate(self.losses):
+			for _, it, loss in self.losses:
 				row = {"it": it, "loss": loss}
 				csvwriter.writerow(row)
 
-		with open(os.path.join(self.path, "train_eval.csv"), "w") as f:
-			cols = ["it"] + sorted(list(set(self.train_scores[0].keys()) - set(["it"])))
+		with open(os.path.join(self.path, "tval.csv"), "w") as f:
+			cols = ["epoch"] + sorted(list(self.tval_scores[0][-1].keys()))
 			csvwriter = csv.DictWriter(f, cols)
 			csvwriter.writeheader()
-			for row in self.train_scores:
+			for e, s in self.tval_scores:
+				row = s
+				row.update({"epoch": e})
 				csvwriter.writerow(row)
 
-		with open(os.path.join(self.path, "eval.csv"), "w") as f:
-			cols = ["it"] + sorted(list(set(self.eval_scores[0].keys()) - set(["it"])))
+		with open(os.path.join(self.path, "vval.csv"), "w") as f:
+			cols = ["epoch"] + sorted(list(self.vval_scores[0][-1].keys()))
 			csvwriter = csv.DictWriter(f, cols)
 			csvwriter.writeheader()
-			for row in self.eval_scores:
+			for e, s in self.vval_scores:
+				row = s
+				row.update({"epoch": e})
 				csvwriter.writerow(row)
 
 		plt.clf()
@@ -127,40 +161,48 @@ class Logger:
 		plt.clf()
 		plt.close()
 
-		train_eval_data = pd.read_csv(os.path.join(self.path, "train_eval.csv"))
-		evalplot = train_eval_data.plot(x="it", y="loss", legend=False, color="b")
+		tval_data = pd.read_csv(os.path.join(self.path, "tval.csv"))
+		evalplot = tval_data.plot(x="epoch", y="loss", legend=False, color="b")
 		secondary_axis = evalplot.twinx()
-		evalplot = train_eval_data.plot(x="it", y="f1",  legend=False, color="r", ax=secondary_axis)
-		evalplot = train_eval_data.plot(x="it", y="acc", legend=False, color="g", ax=secondary_axis)
-		evalplot = train_eval_data.plot(x="it", y="sensitivity", legend=False, color="m", ax=secondary_axis)
-		evalplot = train_eval_data.plot(x="it", y="specificity", legend=False, color="c", ax=secondary_axis)
+		evalplot = tval_data.plot(x="epoch", y="f1",    legend=False, color="r", ax=secondary_axis)
+		evalplot = tval_data.plot(x="epoch", y="acc",   legend=False, color="g", ax=secondary_axis)
+		evalplot = tval_data.plot(x="epoch", y="kappa", legend=False, color="m", ax=secondary_axis)
 		evalplot.figure.legend()
 		evalplot.grid(False)
 		evalplot.set_title("Evaluation on Train Set")
-		evalplot.figure.savefig(os.path.join(self.path, "train_eval.png"))
+		evalplot.figure.savefig(os.path.join(self.path, "tval.png"))
 		plt.clf()
 		plt.close()
 
-		eval_data = pd.read_csv(os.path.join(self.path, "eval.csv"))
-
-		evalplot = eval_data.plot(x="it", y="loss", legend=False, color="b")
+		vval_data = pd.read_csv(os.path.join(self.path, "vval.csv"))
+		evalplot = vval_data.plot(x="epoch", y="loss", legend=False, color="b")
 		secondary_axis = evalplot.twinx()
-		evalplot = eval_data.plot(x="it", y="f1",   legend=False, color="r", ax=secondary_axis)
-		evalplot = eval_data.plot(x="it", y="acc",  legend=False, color="g", ax=secondary_axis)
-		evalplot = eval_data.plot(x="it", y="sensitivity", legend=False, color="m", ax=secondary_axis)
-		evalplot = eval_data.plot(x="it", y="specificity", legend=False, color="c", ax=secondary_axis)
+		evalplot = vval_data.plot(x="epoch", y="f1",    legend=False, color="r", ax=secondary_axis)
+		evalplot = vval_data.plot(x="epoch", y="acc",   legend=False, color="g", ax=secondary_axis)
+		evalplot = vval_data.plot(x="epoch", y="kappa", legend=False, color="m", ax=secondary_axis)
 		evalplot.figure.legend()
 		evalplot.grid(False)
 		evalplot.set_title("Evaluation on Validation Set")
-		evalplot.figure.savefig(os.path.join(self.path, "eval.png"))
+		evalplot.figure.savefig(os.path.join(self.path, "vval.png"))
+
+		plt.clf()
+		plt.close()
+
+		kappaplot = sns.lineplot(
+			x = "epoch",
+			y = "kappa",
+			data = vval_data
+		)
+		kappaplot.set_title("Eval Quadratic-Weighted Kappa Score")
+		kappaplot.figure.savefig(os.path.join(self.path, "eval_kappa.png"))
 
 		plt.clf()
 		plt.close()
 
 		f1plot = sns.lineplot(
-			x = "it",
+			x = "epoch",
 			y = "f1",
-			data = eval_data
+			data = vval_data
 		)
 		f1plot.set_title("Eval F1 Score")
 		f1plot.figure.savefig(os.path.join(self.path, "eval_f1.png"))
@@ -168,32 +210,10 @@ class Logger:
 		plt.clf()
 		plt.close()
 
-		sensplot = sns.lineplot(
-			x = "it",
-			y = "sensitivity",
-			data = eval_data
-		)
-		sensplot.set_title("Eval Sensitivity Score")
-		sensplot.figure.savefig(os.path.join(self.path, "eval_sensitivity.png"))
-
-		plt.clf()
-		plt.close()
-
-		specplot = sns.lineplot(
-			x = "it",
-			y = "specificity",
-			data = eval_data
-		)
-		specplot.set_title("Eval Specificity Score")
-		specplot.figure.savefig(os.path.join(self.path, "eval_specificity.png"))
-
-		plt.clf()
-		plt.close()
-
 		accplot = sns.lineplot(
-			x = "it",
+			x = "epoch",
 			y = "acc",
-			data = eval_data
+			data = vval_data
 		)
 		accplot.set_title("Eval Accuracy")
 		accplot.figure.savefig(os.path.join(self.path, "eval_acc.png"))
@@ -202,9 +222,9 @@ class Logger:
 		plt.close()
 
 		evallossplot = sns.lineplot(
-			x = "it",
+			x = "epoch",
 			y = "loss",
-			data = eval_data
+			data = vval_data
 		)
 		evallossplot.set_title("Eval Loss")
 		evallossplot.figure.savefig(os.path.join(self.path, "eval_loss.png"))

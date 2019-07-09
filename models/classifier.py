@@ -66,7 +66,7 @@ class Classifier(nn.Module):
 		else: raise ValueError("Invalid pooling method.")
 
 		self.features = self.get_feature_extractor(arch, self.net)
-		self.classifier = nn.Linear(model_configs[arch]["fc_size"], 1)
+		self.classifier = nn.Linear(model_configs[arch]["fc_size"], 5)
 
 		if norm_type != "batchnorm": self.convert_norm(norm_type)
 
@@ -80,9 +80,6 @@ class Classifier(nn.Module):
 		x = self.pool(x)
 		x = x.view(x.size(0), -1)
 		x = self.classifier(x)
-
-		if not self.training:
-			x = (x, torch.sigmoid(x))
 
 		return x
 
