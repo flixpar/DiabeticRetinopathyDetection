@@ -13,6 +13,9 @@ class DRDataset(loaders.base.BaseDataset):
 		self.base_path = self.args.dr_datapath
 		self.extension = "jpeg"
 
+		self.img_mean = [0.16147814, 0.22585096, 0.32250461]
+		self.img_std  = [0.05810949, 0.05864657, 0.07206357]
+
 		if self.split == "train":
 			self.data = pd.read_csv(os.path.join(self.args.dr_datapath, "ann/train.csv")).values
 			self.img_folder = "train"

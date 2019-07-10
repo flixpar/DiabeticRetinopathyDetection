@@ -26,8 +26,6 @@ class BaseDataset(torch.utils.data.Dataset):
 	def setup(self):
 
 		# set the image normalization
-		self.img_mean = [0.06898253, 0.17419075, 0.16167488]
-		self.img_std  = [0.06259116, 0.09672542, 0.10255357]
 		self.normalization = tfms.Normalize(mean=self.img_mean, std=self.img_std)
 
 		if self.split == "test": return

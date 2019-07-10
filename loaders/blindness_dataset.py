@@ -14,6 +14,9 @@ class BlindnessDataset(loaders.base.BaseDataset):
 		self.base_path = self.args.blindness_datapath
 		self.extension = "png"
 
+		self.img_mean = [0.08156666, 0.21913543, 0.40812773]
+		self.img_std  = [0.02923252, 0.03653372, 0.05900491]
+
 		if self.split == "train":
 			self.data = pd.read_csv(os.path.join(self.args.blindness_datapath, "ann/train.csv")).values
 			self.img_folder = "train"
