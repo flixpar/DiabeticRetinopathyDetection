@@ -43,6 +43,11 @@ class BaseDataset(torch.utils.data.Dataset):
 		for i in range(self.n_classes):
 			self.example_weights[labels == i] = self.class_weights[i]
 
+	def to_onehot(self, lbl):
+		out = np.zeros(self.n_classes, dtype=np.float)
+		out[lbl] = 1
+		return out
+
 	def __getitem__(self, index):
 
 		if self.split != "test": img_id, lbl = self.data[index]
@@ -68,6 +73,8 @@ class BaseDataset(torch.utils.data.Dataset):
 
 		if self.test_transforms is not None:
 			img = torch.cat((img.unsqueeze(0), imgs), dim=0)
+
+		if self.split != "test" and self.args.loss in ["mse", "l1"]: lbl = self.to_onehot(lbl)
 
 		if self.split != "test": return img, lbl
 		else:                    return img, img_id

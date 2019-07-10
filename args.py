@@ -16,7 +16,7 @@ class Args:
 	pool_type = "avg"               # DEFAULT avg (avg | max)
 	norm_type = "batchnorm"         # DEFAULT batchnorm (batchnorm | instancenorm | groupnorm | layernorm)
 
-	initial_lr = 1e-5               # DEFAULT 5e-5 (float >0)
+	initial_lr = 5e-5               # DEFAULT 5e-5 (float >0)
 	lr_schedule = "poly"            # DEFAULT poly (None | poly | exp | step | multistep | cosine)
 	lr_schedule_params = {          # DEFAULT {} (dict)
 	}
@@ -35,7 +35,7 @@ class Args:
 	save_freq = 10                  # DEFAULT best (best | None | int>0)
 	n_vval_samples = None           # DEFAULT None (int >0 | None)
 	n_tval_samples = 64             # DEFAULT 64 (int >0 | None)
-	debug = True                   # DEFAULT False (bool)
+	debug = False                   # DEFAULT False (bool)
 	logging_enabled = True          # DEFAULT True (bool)
 
 	train_split = "train"           # DEFAULT train (train | val | trainval)

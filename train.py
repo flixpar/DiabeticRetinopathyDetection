@@ -78,10 +78,11 @@ def train(model, train_loader, loss_func, optimizer, logger):
 	logger.train()
 
 	losses = []
+	lbl_dtype = torch.long if isinstance(loss_func, (nn.CrossEntropyLoss)) else torch.float32
 	for i, (images, labels) in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
 
 		images = images.to(primary_device, dtype=torch.float32, non_blocking=True)
-		labels = labels.to(primary_device, dtype=torch.long, non_blocking=True)
+		labels = labels.to(primary_device, dtype=lbl_dtype, non_blocking=True)
 
 		outputs = model(images).squeeze(-1)
 		loss = loss_func(outputs, labels)
@@ -105,12 +106,21 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 	preds = []
 	targets = []
 
+	if isinstance(loss_func, (nn.CrossEntropyLoss)):
+		lbl_dtype = torch.long
+		repeat_dims = lambda x: (x.shape[0])
+		lbl_cvt = lambda x: x
+	else:
+		lbl_dtype = torch.float32
+		repeat_dims = lambda x: (x.shape[0], 1)
+		lbl_cvt = lambda x: x.argmax(-1)
+
 	logger.print(f"Eval {logger.epoch} - {splitname}")
 	with torch.no_grad():
 		for i, (images, labels) in tqdm.tqdm(enumerate(loader), total=len(loader)):
 
 			images = images.to(primary_device, dtype=torch.float32, non_blocking=True).squeeze(0)
-			labels = labels.to(primary_device, dtype=torch.long, non_blocking=True).repeat((images.shape[0]))
+			labels = labels.to(primary_device, dtype=lbl_dtype, non_blocking=True).repeat(repeat_dims(images))
 
 			outputs = model(images)
 			loss = loss_func(outputs, labels).item()
@@ -118,7 +128,7 @@ def evaluate(model, loader, loss_func, logger, splitname="val"):
 			pred = torch.softmax(outputs, dim=-1).mean(dim=0).argmax(dim=-1)
 			pred = pred.cpu().numpy()
 
-			labels = labels[0].cpu().numpy().astype(np.int).squeeze()
+			labels = lbl_cvt(labels[0]).cpu().numpy().astype(np.int).squeeze()
 
 			losses.append(loss)
 			preds.append(pred)
