@@ -66,7 +66,7 @@ def get_loss(args):
 	return loss_func
 
 def get_train_sampler(args, dataset):
-	if args.example_weighting:
+	if args.balancing_method == "sampling":
 		return WeightedRandomSampler(weights=dataset.example_weights, num_samples=len(dataset))
 	else:
 		return None
