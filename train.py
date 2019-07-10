@@ -21,6 +21,7 @@ from args import Args
 args = Args()
 
 primary_device = torch.device(f"cuda:{args.device_ids[0]}")
+torch.backends.cudnn.benchmark = True
 
 def main():
 
@@ -52,6 +53,7 @@ def main():
 	scheduler = get_scheduler(args, optimizer)
 
 	logger = Logger(args=args, enabled=args.logging_enabled)
+	logger.display_model(model, primary_device, args.display_graph)
 	max_score = 0
 
 	for epoch in range(1, args.epochs+1):

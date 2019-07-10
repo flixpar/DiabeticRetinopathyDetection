@@ -129,6 +129,23 @@ class Logger:
 	def eval(self, dset="val"):
 		self.current_split = dset
 
+	def display_model(self, model, device, display=True):
+		if not self.logging: return
+
+		if display:
+
+			self.print(model)
+
+			total_params = 0
+			for param in model.parameters():
+				total_params += param.numel()
+			self.print(f"Total number of parameters: {(total_params/1e6):.3f}M")
+			self.print("-----------------------------------------------\n")
+
+		fake_data = torch.randn((1, 3, 64, 64), dtype=torch.float32, device=device)
+		self.tensorboard.add_graph(model, fake_data)
+		del fake_data
+
 	def save(self):
 		if not self.logging: return
 

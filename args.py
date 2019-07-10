@@ -54,6 +54,7 @@ class Args:
 	save_freq = 10                  # DEFAULT best (best | None | int>0)
 	debug = False                   # DEFAULT False (bool)
 	logging_enabled = True          # DEFAULT True (bool)
+	display_graph = False           # DEFAULT False (bool)
 
 	# data augmentation
 	train_augmentation = tfms.Compose([
