@@ -4,6 +4,7 @@ import pickle
 import json
 import csv
 import shutil
+import tqdm
 import torch
 import numpy as np
 import pandas as pd
@@ -99,6 +100,24 @@ class Logger:
 			self.tensorboard.add_scalars("val/scores/", s, global_step=self.epoch)
 		else:
 			raise ValueError("Invalid split name for logger.")
+
+	def print_loss(self, mode="mean", k=10, print_func="tqdm"):
+		if not self.logging: return
+
+		if mode == "mean":
+			if len(self.losses) < k: k = len(self.losses)
+			loss = np.mean([l[-1] for l in self.losses[-k:]])
+
+		elif mode == "last":
+			loss = self.losses[-1][-1]
+
+		loss_str = f"Loss: {loss:.5f}"
+
+		if print_func == "tqdm":
+			tqdm.tqdm.write(loss_str)
+			self.log(loss_str)
+		else:
+			self.print(loss_str)
 
 	def complete_epoch(self):
 		self.save()

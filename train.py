@@ -93,9 +93,7 @@ def train(model, train_loader, loss_func, optimizer, logger):
 		losses.append(loss.item())
 		logger.log_loss(loss.item())
 		if i % (len(train_loader)//args.log_freq) == 0:
-			mean_loss = np.mean(logger.losses[-10:])
-			tqdm.tqdm.write(f"Train loss: {mean_loss:.5f}")
-			logger.log(f"Train loss: {mean_loss:.7f}")
+			logger.print_loss()
 
 	logger.print()
 
