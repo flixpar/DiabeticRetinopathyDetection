@@ -45,7 +45,7 @@ def main():
 	if len(args.device_ids) > 1:
 		model = nn.DataParallel(model.cuda(), device_ids=args.device_ids)
 	model.to(primary_device)
-	check_memory_use(args, model, primary_device)
+	# check_memory_use(args, model, primary_device)
 
 	# training
 	loss_func = get_loss(args).to(primary_device)

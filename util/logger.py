@@ -142,9 +142,8 @@ class Logger:
 			self.print(f"Total number of parameters: {(total_params/1e6):.3f}M")
 			self.print("-----------------------------------------------\n")
 
-		fake_data = torch.randn((1, 3, 64, 64), dtype=torch.float32, device=device)
-		self.tensorboard.add_graph(model, fake_data)
-		del fake_data
+			fake_data = torch.randn((2, 3, 128, 128), dtype=torch.float32, device=device)
+			self.tensorboard.add_graph(model, fake_data)
 
 	def save(self):
 		if not self.logging: return

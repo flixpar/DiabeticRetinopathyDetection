@@ -9,6 +9,6 @@ sklearn
 pandas
 matplotlib
 seaborn
-matplotlib2tikz
 pytorchcv
 efficientnet_pytorch
+tensorboard

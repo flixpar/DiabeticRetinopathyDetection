@@ -125,3 +125,4 @@ dmypy.json
 # other
 data/
 saves/
+.vscode/
